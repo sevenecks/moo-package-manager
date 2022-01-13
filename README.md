@@ -38,7 +38,7 @@ The package manager will then support you importing a package via an @import-pac
 * By default MPM will not serialize verbs/props on #1, as this can make a package huge. This option can be changed.
 
 ## Unsupported
-* We do not support #0:verbnames IE: ($critical)
-* We do not support #0.propname that are not objects (IE: #0.debugging_enabled)
+* Does not support #0.propname that are not objects (IE: #0.debugging_enabled)
+* Does not support dynamic verb or prop references (IE: $string_utils:("verbname") or $string_utils.(propvar))
 
 ## Contributing
