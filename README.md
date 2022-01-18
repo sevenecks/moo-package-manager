@@ -166,6 +166,10 @@ There are a number of meta data fields associated with your package. These field
 | Package Changelog | Holds the most recent updates to the package, for when you are updating an existing package | no |
 | Package Post Install Note | A note shown to the user when the package is finished installing. Good for any additional setup options, or pointing to help files | no |
 
+### Testing a Created Package
+
+It's important that you test your newly created package on a dev server before making it available to the public. It would be preferable to test the package with a stock [ToastCore](https://github.com/lisdude/toastcore) database. This will ensure it works as expected without any potential hidden dependencies that cause it to function properly on your MOO, that were some how not serialized as part of the package.
+
 ## Loading a Package
 
 The `@load-package` verb is used to browse packages/package info in  registered package repositories and download a package into the MOO Package Manager, thus preparing it for installation. It also provides the option of specifying a package's URL directly, allowing you to load a package from anywhere.
