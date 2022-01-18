@@ -60,6 +60,12 @@ A package may rely on more than it's `ancestors`. The dependency graph that is b
 | referenced  verbs | The verbs on this object that are referenced elsewhere in the package code | Always Serialized |
 | Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
 
+#### Not Included
+
+Code referenced on objects such as player/dobj/iobj is deliberately not included in the package as this would create a gigantic dependency graph and essentially requrie updating a huge number of verbs just because a verb calls `player:tell()` once.
+
+> Note: It should technically be possible to make a package out of an object like Generic Player (#6) but experiences may vary. That has not been tested at this point. Feel free to ping me if you do it and let me know how it goes!
+
 ## Making a Package
 
 To make a package, you use the `@make-package` command and provide arguments. For example:
@@ -70,6 +76,35 @@ To make a package, you use the `@make-package` command and provide arguments. Fo
 ```
 
 > Warning: The more complicated your code is, and the more reliant it is on other utilities/objects the larger your package is going to be.
+
+When your package is finished, the package map and serialized package maps will be stored in the `$mpm.last_created_package_map` and `$mpm.last_created_package_hash` properties respectively.
+
+> Note: See the section on Making Packages Available Online for more information on how to make your package available online.
+
+### Package Creation Caveats
+
+The package manager works best with mostly self contained code that doesn't rely on verbs across your entire MOO. In general, MOO code is pretty coupled, and so you may end up with a large dependency graph. If you are making a package, please consider how this might affect the usability of your package and consider decoupling your code, or creating smaller packages.
+
+> Note: Since the package manager is still beta, lots of experimentation, testing, and updates to the package manager will likely be needed to make it as robust as possible and capable of handling dependencies more smartly. Suggestions are welcome!
+
+It is currently not possible to serialize a package which contains binary data such as `~1E`. This is due to how we are currently encoding the packages. If you have suggestions for how we can do encode better, please reach out.
+
+It is currently not possible to serialize packages that reference object numbers in their code. Use cored references instead.
+
+It is currently not possible to serialize packages that make dynamic verb or property references such as:
+
+```
+verbname = "nn";
+propname = "apropnamehere";
+$string_utils:(verbname)(player);
+$widget_utils.(propname);
+$string_utils:("left")();
+$widget_utils.("someprop");
+```
+
+This is due to the fact that we can't smartly serialize these references without actually parsing all the verb code to figure out what it is trying to call.
+
+> Call to Action: Suggestions for how to deal with this are welcome. I'm considering just prompting the user to provide the verbs/props manually instead of failing the package creation entirely like we are doing now.
 
 ### Package Creation Options
 
