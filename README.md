@@ -1,4 +1,4 @@
-# MOO Package Manager (MPM)
+# MOO Package Manager (MPM) 1.0
 
 ## About
 The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serailized map is then encoded and can then be copied to another MOO, or made available online.
@@ -11,23 +11,53 @@ The MOO Package Manager is a configurable utility for packaging code up on one M
 * By default the MOO Package Manager comes with one registered package repository (this repos [/packages](/packages) directory. You can add others at your own discresion, and at your own risk.
 
 ## Requirements
-* [ToastStunt 2.7+](https://github.com/lisdude/toaststunt) (it may work on older versions, but we suggest 2.7!)
+* [ToastStunt 2.7+](https://github.com/lisdude/toaststunt) (it may work on older versions, perhaps even Stunt, with some modifications)
 * Ability to make outgoing network connections (the package manager uses the `curl` builtin from ToastStunt for these connections)
 * A wizard bit
 * LamdaCore or ToastCore derived MOO (or you'll need to do some hacking!)
-* $string_utils
-* $object_utils
-* $command_utils
+* $string_utils, $object_utils, $command_utils, @program 
 * $diff_utils (this is available through the package manager, and the package manager can install it without it existing)
 
 ## Installation
-//TODO: write installation instructions
-* Install the Diff Utils package
+Hopefully, this will be the last time you need to manually install MOO code! At least, that's the goal. In order to install the MOO Package Manager you will need to copy and (slightly) update several bits of code. The package manager code itself is quite long, so including it in this README is not effective. The code is stored in files, linked below.
 
-### What's in a package?
-A package is a complete collection of everything needed to recreate an object and its dependencies on another MOO.
+** Installing The Package Manager **
 
-#### Origin Object
+1. `@create #78 named MOO Package Manager`
+2. `@corify newObj# as $mpm` 
+3. Open the [MOO Package Manager Code](/code/moo_package_manager)
+4. Copy and paste the code into your MOO
+
+> Note: `#78` is typically the Generic Utility object, the same parent that $string_utils has. It may differ on your MOO.
+
+> Note: `@corify` adds a new property to `$sysobj` (`#0` on most systems). If you don't have this verb for some reason you can just `@prop $sysobj.mpm newObj#`
+
+You will now have an $mpm object which encapsulates the majority of the MOO Package Manager's code. You will also have several helper verbs on your player bit that will allow you to interact with the package manager. For now, we are concerned with two of these: `@load-package` and `@install-package`.
+
+** Installing Your First Package **
+
+The MOO Package Manager is mostly self contained. However, it does rely on a package called `Diff Utilities` which it uses to present code diffs. The Diff Utilities is a repackage / update of the original Stunt utility that came bundled with the `Improvise.db`. We need to install this package in order for the MOO Package Manager to operate property when it needs to update an existing verb (fourtunately, this won't be an issue, as Diff Utils is a brand new utility that you don't have on your MOO).
+
+To install the Diff Utility follow these steps:
+
+1. `@load-package`
+2. Select `View Available Packages`
+3. Select `Slither's MOO Packages`
+4. Select the lastest version of `Diff Utilities`
+5. Review the package data and select `yes` when ready
+6. `@view-package` to see what the package will install
+7. `@install-package` to kick off the package installation
+8. Review the data presented and enter `yes` when ready to install.
+9. Follow the prompts to create a new object and install the package.
+
+> Note: For more information on installing a package see the [Installing a Package](#installing-a-package) section.
+
+You should now have a working package manager, and a working Diff Utilities which you can reference with `$diff_utils`.
+
+## What's in a package?
+A package is a collection of everything needed to recreate an object and its dependencies on another MOO.
+
+### Origin Object
 The `origin object` is the most important piece of your package. It serves as the starting point in building the dependency graph. By default all the verbs/props of the `origin object` are serialied. However, this behavior can be over-ridden.
 
 | Serialized | Description | State |
@@ -38,7 +68,7 @@ The `origin object` is the most important piece of your package. It serves as th
 | Properties | The properties defiend on the object & their value | All props serialized by default, but you can override and ignore properties |
 | Property Supplementary Data | Permissions | Serialized for every included prop |
 
-#### Ancestor Objects
+### Ancestor Objects
 `Ancestors` are the parent(s) of the `origin object`. We serialize each of the ancestors but unlike the `origin object` we only serialize what we need from the `ancestor`.
 
 | Serialized | Description | State |
@@ -49,7 +79,7 @@ The `origin object` is the most important piece of your package. It serves as th
 | `pass()`ed verbs | The verbs on the `origin object` that `pass()` to an ancestor | Always Serialized |
 | Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
 
-#### Other Objects
+### Other Objects
 A package may rely on more than it's `ancestors`. The dependency graph that is built scans for cored references to other objects that are defined in the code. For example if your `origin object` defines a verb that makes a call to `$string_utils:name_and_number()` then we will include `$string_utils`. This inclusion essentially creates a sub package, treating `$string_utils` as the `origin object` but serializing only the verbs on `$string_utils` that are called elsewhere in the package. If a verb in the `$string_utils` sub package calls `$command_utils:suspend_if_needed` then another sub package is created within the `$string_utils` sub package, treating `$command_utils` as the origin object, and so on and so forth, until all of the dependencies have been serialized throughout the graph.
 
 | Serialized | Description | State |
@@ -60,7 +90,7 @@ A package may rely on more than it's `ancestors`. The dependency graph that is b
 | referenced  verbs | The verbs on this object that are referenced elsewhere in the package code | Always Serialized |
 | Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
 
-#### Not Included
+### Not Included
 
 Code referenced on objects such as player/dobj/iobj is deliberately not included in the package as this would create a gigantic dependency graph and essentially requrie updating a huge number of verbs just because a verb calls `player:tell()` once.
 
@@ -202,7 +232,58 @@ If at any point, an object that is needed doesn't exist (if for example the pack
 
 > Warning: the `$mpm.log` can get really long. You may want to clear it from time to time.
 
-## Making Packages Available Online
+## Making Packages Available
+The MOO Package Manager makes it easy to copy packages from one MOO to another, or to make your packages available online. There is one way to copy your package directly to another MOO and two ways of  making your package available online that will be discussed below.
+
+First, let's discuss the relevant pieces of data that are created when you generate package.
+
+** Package Map **
+
+This is a map containing the meta data about your package as well as the package data (your actual package objects/verbs/props/etc). When the package is created, the `package map` is stored as a `map` in `$mpm.last_created_package_map`. This is useful for you if you want to explore the created package map or copy it to another MOO.
+
+** Copying the Package Map **
+You can also choose to copy this map over to another MOO with the MOO Package Manager and set the `$mpm.loaded_package` property with the data, thus making it available to `@view-package` and `@install-package`. This is the basic way of moving a package from one MOO to another.
+
+> Warning: This may prove more difficult if you have a very large package. You won't be able to use `@set` to set the property and you will instead need to use an eval such as `;$mpm.loaded_package = packagemapdata`.
+
+** Encoded Package Map **
+
+The `$mpm.last_created_package_encoded` property will contain your encoded package. This is the `package map` after bering converted to json, encoded in binary, and then base64 encoded.
+
+** Making a Single Package Available **
+
+If you would like to make a single package available online, you can copy the contents of `$mpm.last_created_package_encoded` into a plaintext file and upload it to a website, commit it to a Git Repository, or place it wherever you want online. You can then provide the URL to the file to anyone who would like to install it and they can use the `@load-package` command and select the `Load package directly from URL` option, specifying the URL and loading the package.
+
+** Making a Package Repository **
+
+Alternatively, you can make a package repository. A package repository contains a `package_list` with `package headers`. The `package headers` contain the meta data about packages (name, version, links to where the package can be downloaded, etc). A package repositoy can have as many packages in it as you like. Those packages must have `package headers` listed for each of the packages.
+
+> Note: For an example of how a package repository might look, look no further than this git repository, which also acts as the `Slither's MOO Packages` repository. The `package_list` containing the `package headers` along with all the package code files is located in the [packages](/packages) directory.
+
+** Generating Package Headers **
+
+`package headers` are generated from the package meta data stored in your instance of the `$mpm`. When you create a package, the `$mpm.created_packages` map is updated with the newly created package. This stores every package you have created, including the multiple different versions of a package you may have created (for instance if you are updating your packages as you fix bugs or add functionality).
+
+To generate package headers for your `package_list` you can simply execute:
+
+```
+;$mpm:dump_package_headers()
+```
+
+This will display your package headers. Now just simply copy and paste (ensuring one package per line) into a `package_list` file, and place the package list as well as your code, online (we recommend in a GitHub Repo).
+
+You have created a package repository. This package repository will not be available to any MOO Package Manager by default and will need to be added by anyone who wishes to download packages from your repository.
+
+### Adding Package Repositories
+By default the only package repository the MOO Package Manager has, point's to this Github Repo, and is registered as `Slither's MOO Packages`. These are trusted packages.
+
+If you would like to add another package repository, you can register that repository with your MOO Package Manager by executing:
+
+```
+;$mpm:register_package_repository(name, url);
+```
+
+> Warning: Please take care when adding package repositories. You should review any code you are adding to your MOO before using `@install-package`. 
 
 ## Caveats
 * By default MPM will not serialize verbs/props on ancestors who have a parent of $nothing (IE: #1), as this can make a package huge. This can be over-ridden..
@@ -217,8 +298,11 @@ If at any point, an object that is needed doesn't exist (if for example the pack
 If you have an issue with using the package manager, feel free to open an issue.
 
 ### Contributing a Package
-TBD. For now reach out to Slither on the [ToastStunt Discord](https://discord.gg/XyXP43e).
+For now reach out to Slither on the [ToastStunt Discord](https://discord.gg/XyXP43e).
 
 ### Contributing to the Package Manager Source
 - If you would like to contribute the best way to do so is by joining the [ToastStunt Discord](https://discord.gg/XyXP43e).
 - Pull requests are also welcome
+
+### Contributing a Package Repository
+For now reach out to Slither on the [ToastStunt Discord](https://discord.gg/XyXP43e).
