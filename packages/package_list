@@ -1,4 +1,2 @@
-line 1
-line 2
-line 3
-line 4
+Diff Utilities%%%1.0%%%D960977030CACEAC1757588C0A13DCA3%%%This is a repackage & update of the Stunt (Improvise.db) diff tooling. It provides a straightforward way to diff two lists. An example of its usage is diffing current verb code against proposed changes. The package includes a very simple ANSI verb as well that is MOO agnostic and does not rely on any ANSI Utility being setup or configured.%%%1642477866%%%Fengshui (#22664)%%%https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/diff_utils_1_0%%%
+Map Utilities%%%1.0%%%A198D6552ABF217F43BFFD6CE734806D%%%A very basic $map_utils that provides two verbs currently. 'map_print' pretty prints a map and 'dotkey' accepts a map and a string in the form of 'slither.stats.strength' and then indexes into the map such that the returned result is the value of map["slither"]["stats"]["strength"].%%%1642478121%%%Fengshui (#22664)%%%https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/map_utils_1_0%%%
