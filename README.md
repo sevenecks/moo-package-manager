@@ -1,13 +1,13 @@
 # MOO Package Manager (MPM) 1.0
 
 ## About
-The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serailized map is then encoded and can then be copied to another MOO, or made available online.
+The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serialized map is then encoded and can then be copied to another MOO, or made available online.
 
 ## Warnings
 
 * The MOO Package Manager is in `open beta` and should be considered only mildly stable. You use this code at your own risk.
 * You should always test install new packages on a dev server to make sure nothing breaks.
-* After loading a package but prior to installing, you should `@view-package` and review the verb code to ensure you are OK with what you are installing.
+* After loading a package but prior to installing, you should `@view-package loaded` and review the verb code to ensure you are OK with what you are installing.
 * By default the MOO Package Manager comes with one registered package repository (this repos [/packages](/packages) directory. You can add others at your own discresion, and at your own risk.
 
 ## Requirements
@@ -45,7 +45,7 @@ To install the Diff Utility follow these steps:
 3. Select `Slither's MOO Packages`
 4. Select the lastest version of `Diff Utilities`
 5. Review the package data and select `yes` when ready
-6. `@view-package` to see what the package will install
+6. `@view-package loaded` to see what the package will install
 7. `@install-package` to kick off the package installation
 8. Review the data presented and enter `yes` when ready to install.
 9. Follow the prompts to create a new object and install the package.
@@ -142,13 +142,38 @@ This is due to the fact that we can't smartly serialize these references without
 
 | Argument | Description | Required |
 | ------------- | ------------- | ------------- | 
-| object number | the object number of the `origin object` | yes |
+| object number | the object number of the `origin object`, must be first argument provided | yes |
 | --select-verbs | enable dynamic selection of verbs on `origin object` to include via interactive prompt | no |
 | --fully-serialize-ancestry | enable full serialization of ancestors verbs (excluding objects whose parent is $nothing) | no |
 | --serialize-#1 | enable full serialization of ancestors whose parent is $nothing | no |
 | --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!) | no |
 | --ignore-prop-list=propname1,propname2,#20.propname,... | if no obj# is provided, ignores any prop on any object with specified propname, if obj# is provided, ignores that prop on only that obj# | no |
+| --reset-prop-value-list=obj.prop,obj.prop,...| if provided, when serializing obj.prop it will be reset to an empty version of whatever value it holds to an empty/false value. | no |
+| --only-origin-object | Ignore all package dependencies and only serialize the origin object + ancestry | no |
 | --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
+
+> Note: Arguments can be provided in any order, except for the object number, which must be first.
+
+An example of using --reset-prop-value-list to `@make-package` a new version of the MOO Package Manager (in this case, the obj# for the package manager is #24836). In order to do this we employ the `--reset-prop-value-list` and `--only-origin-object` arguments to only serialize the MPM itself, as well as reset props that are specific to the instance of the object and not needed in the package itself. It also enables `--dry-run` to avoid saving the package map. It also enabled
+`--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package.
+
+```
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date
+```
+
+The `--reset-prop-value-list` argument can only reset certain properties:
+
+| Type | Reset Value |
+| ---- | ----------- |
+| INT | 0 |
+| STR | "" |
+| LIST | {} |
+| MAP | [] |
+| BOOL | false |
+| FLOAT | 0.0 |
+| OBJ | #-1 |
+
+All other property values (such as WAIF, ANON, ERR) will throw `E_ARGS` with the value it failed to reset, and package creation will be aborted.
 
 ### Package Meta Data
 
@@ -178,7 +203,11 @@ The `@load-package` verb is used to browse packages/package info in  registered 
 
 ## Viewing a Package
 
-After you have loaded a package, you can view it with `@view-package`. This will display a pretty printed dump of the package, which you can use to review. You can also review the `$mpm.laaded_package` property directly, to see the entire package map.
+`@view-package` will display a pretty printed dump of the package, which you can use to review. You can also review the `$mpm.laaded_package` property directly, to see the entire package map.
+
+After creating a package you can view it with `@view-package created`.
+
+After you have loaded a package, you can view it with `@view-package loaded`.
 
 ## Installing a Package
 
@@ -258,9 +287,11 @@ The `$mpm.last_created_package_encoded` property will contain your encoded packa
 
 If you would like to make a single package available online, you can copy the contents of `$mpm.last_created_package_encoded` into a plaintext file and upload it to a website, commit it to a Git Repository, or place it wherever you want online. You can then provide the URL to the file to anyone who would like to install it and they can use the `@load-package` command and select the `Load package directly from URL` option, specifying the URL and loading the package.
 
+> Note: If you are using Github, you need the URL to the 'raw' version of your file. You can find this by opening the file in Github, then clicking the 'raw' button. The url will look something like: `https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/diff_utils_1_0`.
+
 ** Making a Package Repository **
 
-Alternatively, you can make a package repository. A package repository contains a `package_list` with `package headers`. The `package headers` contain the meta data about packages (name, version, links to where the package can be downloaded, etc). A package repositoy can have as many packages in it as you like. Those packages must have `package headers` listed for each of the packages.
+Alternatively, you can make a package repository. A package repository contains a `package_list` with `package headers`. The `package headers` contain the meta data about packages (name, version, links to where the package can be downloaded, etc). A package repository can have as many packages in it as you like. Those packages must have `package headers` listed for each of the packages.
 
 > Note: For an example of how a package repository might look, look no further than this git repository, which also acts as the `Slither's MOO Packages` repository. The `package_list` containing the `package headers` along with all the package code files is located in the [packages](/packages) directory.
 
