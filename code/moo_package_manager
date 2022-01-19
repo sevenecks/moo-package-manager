@@ -501,7 +501,7 @@ return ["verb_data" -> verb_data, "all_cored_verbs" -> all_cored_verbs, "all_cor
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
 .
 
-@verb $mpm:"package_serialize_cored_property_references" this none this
+@verb $mpm:"package_serialize_cored_aproperty_references" this none this
 @program $mpm:package_serialize_cored_property_references
 ":package_serialized_cored_property_references(OBJ object, LIST cored, MAP options, MAP dependency_map, INT depth) => MAP";
 "TODO: do we need to update this to be more recursive and check if we already have a reference to the parents data?";
@@ -1583,7 +1583,7 @@ if (!post_install_note)
 endif
 new_package_data["package_post_install_note"] = post_install_note;
 this:tell_debug(depth, "(optional) Enter the URL where you will be hosting this package. Just hit enter to leave this blank. You can update it later.");
-if (package_url = $cu:read("package url?"))
+if (package_url = $command_utils:read("package url?"))
   new_package_data["package_url"] = package_url;
 else
   new_package_data["package_url"] = "";
@@ -1740,7 +1740,6 @@ if (result = match(arguments, "--reset-prop-value-list="))
 else
   options["object_prop_reset_list"] = [];
 endif
-$critical(options);
 return options;
 "Last modified by Fengshui (#22664) on Tue Jan 18 17:37:37 2022 PST";
 .
