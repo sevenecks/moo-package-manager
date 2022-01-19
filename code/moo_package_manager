@@ -1349,7 +1349,7 @@ for data in (package_ancestors)
   endif
   ancestors_needing_rewiring = {@ancestors_needing_rewiring, data};
 endfor
-if (ancestors_needing_rewiring)
+if (!ancestors_needing_rewiring)
   this:tell_debug(depth, "All ancestors of ", $string_utils:nn(package_object), " already rewired. Moving on.");
   return;
 else
