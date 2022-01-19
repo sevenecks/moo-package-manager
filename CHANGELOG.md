@@ -1,3 +1,7 @@
+## [1.0.2] - 2022.01.19 1:41AM
+* Added read selection package
+* Added code scanner package
+
 ## [1.0.1] - 2022.01.18 9:40PM
 * Added moo_package_manager_1_0 to packages
 * Updated package headers
