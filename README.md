@@ -21,7 +21,7 @@ The MOO Package Manager is a configurable utility for packaging code up on one M
 ## Installation
 Hopefully, this will be the last time you need to manually install MOO code! At least, that's the goal. In order to install the MOO Package Manager you will need to copy and (slightly) update several bits of code. The package manager code itself is quite long, so including it in this README is not effective. The code is stored in files, linked below.
 
-** Installing The Package Manager **
+**Installing The Package Manager**
 
 1. `@create #78 named MOO Package Manager`
 2. `@corify newObj# as $mpm` 
@@ -43,7 +43,7 @@ Hopefully, this will be the last time you need to manually install MOO code! At 
 
 You will now have an $mpm object which encapsulates the majority of the MOO Package Manager's code. You will also have several helper verbs on your player bit that will allow you to interact with the package manager. For now, we are concerned with two of these: `@load-package` and `@install-package`.
 
-** Installing Your First Package **
+**Installing Your First Package**
 
 The MOO Package Manager is mostly self contained. However, it does rely on a package called `Diff Utilities` which it uses to present code diffs. The Diff Utilities is a repackage / update of the original Stunt utility that came bundled with the `Improvise.db`. We need to install this package in order for the MOO Package Manager to operate property when it needs to update an existing verb (fourtunately, this won't be an issue, as Diff Utils is a brand new utility that you don't have on your MOO).
 
@@ -282,32 +282,32 @@ The MOO Package Manager makes it easy to copy packages from one MOO to another, 
 
 First, let's discuss the relevant pieces of data that are created when you generate package.
 
-** Package Map **
+**Package Map**
 
 This is a map containing the meta data about your package as well as the package data (your actual package objects/verbs/props/etc). When the package is created, the `package map` is stored as a `map` in `$mpm.last_created_package_map`. This is useful for you if you want to explore the created package map or copy it to another MOO.
 
-** Copying the Package Map **
+**Copying the Package Map**
 You can also choose to copy this map over to another MOO with the MOO Package Manager and set the `$mpm.loaded_package` property with the data, thus making it available to `@view-package` and `@install-package`. This is the basic way of moving a package from one MOO to another.
 
 > Warning: This may prove more difficult if you have a very large package. You won't be able to use `@set` to set the property and you will instead need to use an eval such as `;$mpm.loaded_package = packagemapdata`.
 
-** Encoded Package Map **
+**Encoded Package Map**
 
 The `$mpm.last_created_package_encoded` property will contain your encoded package. This is the `package map` after bering converted to json, encoded in binary, and then base64 encoded.
 
-** Making a Single Package Available **
+**Making a Single Package Available**
 
 If you would like to make a single package available online, you can copy the contents of `$mpm.last_created_package_encoded` into a plaintext file and upload it to a website, commit it to a Git Repository, or place it wherever you want online. You can then provide the URL to the file to anyone who would like to install it and they can use the `@load-package` command and select the `Load package directly from URL` option, specifying the URL and loading the package.
 
 > Note: If you are using Github, you need the URL to the 'raw' version of your file. You can find this by opening the file in Github, then clicking the 'raw' button. The url will look something like: `https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/diff_utils_1_0`.
 
-** Making a Package Repository **
+**Making a Package Repository**
 
 Alternatively, you can make a package repository. A package repository contains a `package_list` with `package headers`. The `package headers` contain the meta data about packages (name, version, links to where the package can be downloaded, etc). A package repository can have as many packages in it as you like. Those packages must have `package headers` listed for each of the packages.
 
 > Note: For an example of how a package repository might look, look no further than this git repository, which also acts as the `Slither's MOO Packages` repository. The `package_list` containing the `package headers` along with all the package code files is located in the [packages](/packages) directory.
 
-** Generating Package Headers **
+**Generating Package Headers**
 
 `package headers` are generated from the package meta data stored in your instance of the `$mpm`. When you create a package, the `$mpm.created_packages` map is updated with the newly created package. This stores every package you have created, including the multiple different versions of a package you may have created (for instance if you are updating your packages as you fix bugs or add functionality).
 
