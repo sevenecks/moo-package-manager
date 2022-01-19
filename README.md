@@ -19,7 +19,7 @@ The MOO Package Manager is a configurable utility for packaging code up on one M
 * $diff_utils (this is available through the package manager, and the package manager can install it without it existing)
 
 ## Installation
-Hopefully, this will be the last time you need to manually install MOO code! At least, that's the goal. In order to install the MOO Package Manager you will need to some code. The package manager code itself is quite long, so including it in this README is not effective. The code is stored in files, linked below.
+Hopefully, this will be the last time you need to manually install MOO code! At least, that's the goal. In order to install the MOO Package Manager you will need to copy and paste some code. The package manager code itself is quite long, so including it in this README is not effective. The code is stored in files, linked below.
 
 **Installing The Package Manager**
 
