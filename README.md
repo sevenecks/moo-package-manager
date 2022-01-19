@@ -45,7 +45,7 @@ You will now have an $mpm object which encapsulates the majority of the MOO Pack
 
 **Installing Your First Package**
 
-The MOO Package Manager is mostly self contained. However, it does rely on a package called `Diff Utilities` which it uses to present code diffs. The Diff Utilities is a repackage / update of the original Stunt utility that came bundled with the `Improvise.db`. We need to install this package in order for the MOO Package Manager to operate property when it needs to update an existing verb (fourtunately, this won't be an issue, as Diff Utils is a brand new utility that you don't have on your MOO).
+The MOO Package Manager is mostly self contained. However, it does rely on a package called `Diff Utilities` which it uses to present code diffs. The Diff Utilities is a repackage / update of the original Stunt utility that came bundled with the `Improvise.db`. We need to install this package in order for the MOO Package Manager to operate properly when it needs to update an existing verb (fourtunately, this won't be an issue, as Diff Utils is a brand new utility that you don't have on your MOO).
 
 To install the Diff Utility follow these steps:
 
