@@ -27,10 +27,19 @@ Hopefully, this will be the last time you need to manually install MOO code! At 
 2. `@corify newObj# as $mpm` 
 3. Open the [MOO Package Manager Code](/code/moo_package_manager)
 4. Copy and paste the code into your MOO
+5. Open the [MOO Package Manager User Code](/code/moo_package_manager_user)
+6. Copy and paste the code into your MOO
+7. @create $waif named Memory Waif
+8. @corify newObj# as $memory_waif
+9. @prop $memory_waif.":data" [] rw
 
 > Note: `#78` is typically the Generic Utility object, the same parent that $string_utils has. It may differ on your MOO.
 
 > Note: `@corify` adds a new property to `$sysobj` (`#0` on most systems). If you don't have this verb for some reason you can just `@prop $sysobj.mpm newObj#`
+
+> Note: If you have an issue copying the MOO Package Manager User Code because `me` is not defined, just change all references to `me` to the object# of your player bit (yourself).
+
+> Note: If you have trouble creating a property with [] (map) then create it with any value and then evaluate `;$memory_waif.:data = []`
 
 You will now have an $mpm object which encapsulates the majority of the MOO Package Manager's code. You will also have several helper verbs on your player bit that will allow you to interact with the package manager. For now, we are concerned with two of these: `@load-package` and `@install-package`.
 
@@ -135,6 +144,8 @@ $widget_utils.("someprop");
 This is due to the fact that we can't smartly serialize these references without actually parsing all the verb code to figure out what it is trying to call.
 
 > Call to Action: Suggestions for how to deal with this are welcome. I'm considering just prompting the user to provide the verbs/props manually instead of failing the package creation entirely like we are doing now.
+
+> Multiple inheritance is not supported.
 
 ### Package Creation Options
 
