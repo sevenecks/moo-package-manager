@@ -190,6 +190,7 @@ There are a number of meta data fields associated with your package. These field
 | Package URL | The url where the package can be found online. | no |
 | Package Changelog | Holds the most recent updates to the package, for when you are updating an existing package | no |
 | Package Post Install Note | A note shown to the user when the package is finished installing. Good for any additional setup options, or pointing to help files | no |
+| MPM Version | The version of MPM that was used to create the package | yes |
 
 ### Testing a Created Package
 
