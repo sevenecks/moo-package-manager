@@ -18,6 +18,8 @@
 * Added package_id which will be unique for each package, and carry over when packages are updated
 * Fixed @load-package message to point to @install-package and not @import-package
 * Added new prompts and checks around --target-self packages on make and install
+* Added new MPM 1.1 package
+* Added new MPM Wizard Verbs package
 
 ## [1.0.2] - 2022.01.19 1:41AM
 * Added read selection package
