@@ -146,6 +146,8 @@ $widget_utils.("someprop");
 
 This is due to the fact that we can't smartly serialize these references without actually parsing all the verb code to figure out what it is trying to call.
 
+> Note: If you are sure the dynamic prop or verb references will not break the functionality of your package (for instance if they just dynamically call verbs on the object being packaged) you can override the abortion of your package creation with the `--allow-dynamic-verb-calls` and `--allow-dynamic-prop-calls` options.
+
 > Call to Action: Suggestions for how to deal with this are welcome. I'm considering just prompting the user to provide the verbs/props manually instead of failing the package creation entirely like we are doing now.
 
 > Multiple inheritance is not supported.
