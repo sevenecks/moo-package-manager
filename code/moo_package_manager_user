@@ -60,7 +60,8 @@ endif
 player:tell("Done installing.");
 "store meta info about this packages creation";
 $mpm:log_installed_package(origin_object, package_map);
-"Last modified by Fengshui (#22664) on Wed Jan 19 21:55:14 2022 PST";.
+"Last modified by Fengshui (#22664) on Wed Jan 19 21:55:14 2022 PST";
+.
 
 @verb me:@make-package any any any rxd
 @program me:@make-package
@@ -152,7 +153,8 @@ else
   $mpm:log_created_package(package_object, package_map);
   player:tell("Package Map saved to $mpm.last_created_package_map prop, packaged base64 (use for export) saved to $mpm.last_created_package_encoded");
 endif
-"Last modified by Fengshui (#22664) on Wed Jan 19 22:21:06 2022 PST";.
+"Last modified by Fengshui (#22664) on Wed Jan 19 22:21:06 2022 PST";
+.
 
 @verb me:@view-package any none none rxd
 @program me:@view-package
