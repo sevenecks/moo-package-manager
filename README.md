@@ -175,10 +175,10 @@ This is due to the fact that we can't smartly serialize these references without
 > Note: Arguments can be provided in any order, except for the object number, which must be first.
 
 An example of using --reset-prop-value-list to `@make-package` a new version of the MOO Package Manager (in this case, the obj# for the package manager is #24836). In order to do this we employ the `--reset-prop-value-list` and `--only-origin-object` arguments to only serialize the MPM itself, as well as reset props that are specific to the instance of the object and not needed in the package itself. It also enables `--dry-run` to avoid saving the package map. It also enabled
-`--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package.
+`--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. It then specifies we should allow serializing to continue when we detect dynamic prop calls via `--allow-dynamic-prop-calls`.
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls
 ```
 
 The `--reset-prop-value-list` argument can only reset certain properties:
@@ -366,6 +366,7 @@ If you would like to add another package repository, you can register that repos
 
 ## Known Issues
 * There is some issue with generate_json where it fails saying invalid argument when passing a package_map at certain times. I'm trying to track down what it is. It might be on very large maps, or it might be certain characters being in the map. If you have this issue and can pin it down let me know.
+* If you have a very large package your MOO may not display the entire encoded package, even if you use `notify()`. In these cases please use something like ;notify(me, $mpm.last_created_package_encoded[1..100000]); notify(me, $mpm.last_created_package_encoded[100001..$]) and then join the two (making sure you don't have any line breaks.
 
 ## Contributing
 
