@@ -169,7 +169,7 @@ This is due to the fact that we can't smartly serialize these references without
 | --target-self | this option overrides the default behavior and forces the package to be installed on the `player` installing it. Must be used in conjunction with --only-origin-object | no |
 | --allow-dynamic-verb-calls | this will prevent package creation from aborting when a dynamic verb call is detected. use with care. | no | 
 | --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
-| --dont-serialize-ancestry |
+| --dont-serialize-ancestry | UNTESTED ALPHA FEATURE. This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing | no |
 | --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
 
 > Note: Arguments can be provided in any order, except for the object number, which must be first.
