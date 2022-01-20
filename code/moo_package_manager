@@ -14,7 +14,7 @@
 
 @prop $mpm."registered_repositories" ["Slither's MOO Packages" -> "https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/package_list"] r
 
-@prop $mpm."package_manager_version" 1.0 r
+@prop $mpm."package_manager_version" 1.1 r
 
 ;;$mpm.("aliases") = {"MOO", "Package", "Manager", "MOO Package Manager"}
 
