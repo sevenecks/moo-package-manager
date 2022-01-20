@@ -20,6 +20,8 @@
 * Added new prompts and checks around --target-self packages on make and install
 * Added new MPM 1.1 package
 * Added new MPM Wizard Verbs package
+* Updated code/moo_package_manager_user code to MPM Wizard Verbs 1.1
+* Updated code/moo_package_manager code to MPM 1.1
 
 ## [1.0.2] - 2022.01.19 1:41AM
 * Added read selection package

@@ -2,10 +2,9 @@
 @program me:@install-package
 "import a package";
 "- add ability to scan for verbs that need wizard perms before denying creation";
-"- add ability to import from a prop";
-"- add ability to import via github";
 "- add dry run option which is default, and real run option which needs to be passed in";
 "- add ability to specify a non wizard owner of non wizard verbs";
+"- installing on toaststunt with toast $recycler gives weird results when doing $reyccler:valid";
 if (!player.wizard)
   return player:tell("You need to be a wizard to import packages due to permissions issues that can crop up. If you're sure you want to try this without this check, you can always edit the check out of the verb :)");
 endif
@@ -17,11 +16,17 @@ endif
 player:tell("Package: ", package_map["package_name"], " @ ", package_map["package_version"]);
 player:tell("Checking package hash to ensure consistency...");
 if (package_map["package_hash"] != string_hash(toliteral(package_map["package_data"]), "MD5"))
-  return player:tell("Package hash does not match. Possible data consistency issue. Aborting.");
+  player:tell("Package hash does not match. Possible data consistency issue.");
+  player:tell("This may just be due to the way parse_json sometimes adds extra escape strings (Slither is trying to nail down what is causing it). If you are confident in the package, you can try installing and it will probably work.");
+  if (!$command_utils:yes_or_no("Continue install?"))
+    return player:tell("Aborted.");
+  endif
+else
+  player:tell("Package hash matches, continuing...");
 endif
-player:tell("Package hash matches, continuing...");
 player:tell("Checking if package has previously been installed...");
-if (installed_packages = $mpm:is_package_already_installed(package_map["package_hash"]))
+"we just pass 1 if there is no id";
+if (installed_packages = $mpm:is_package_already_installed(`package_map["package_id"] ! E_RANGE => 1'))
   $mpm:display_install_history(installed_packages);
 else
   player:tell("Package has not been previously installed.");
@@ -34,11 +39,28 @@ endif
 object_waif = $memory_waif:new();
 "options array for use in configurating package imports";
 options = [];
+if (maphaskey(package_map, "package_target_self"))
+  options["package_target_self"] = package_map["package_target_self"];
+endif
 origin_object = $mpm:package_install(package_map["package_data"], object_waif, options);
+if (maphaskey(package_map, "package_post_install_note") && package_map["package_post_install_note"])
+  player:tell("Post Installation Note:");
+  player:tell(package_map["package_post_install_note"]);
+endif
+if (maphaskey(package_map, "package_post_install_verb"))
+  verbname = package_map["package_post_install_verb"];
+  player:tell("This package has specified a verb to be executed upon successfully install: '", verbname, "'. It can be automatically run now, or you can run it yourself manually.");
+  if ($command_utils:yes_or_no("Run this verb (YES) or do not run the verb (NO)"))
+    origin_object:(verbname)();
+    player:tell("Finished running post install verb.");
+  else
+    player:tell("Did not run post install verb. You can eval it yourself with: ;", object, ":", verbname, "()");
+  endif
+endif
+player:tell("Done installing.");
 "store meta info about this packages creation";
 $mpm:log_installed_package(origin_object, package_map);
-"Last modified by Fengshui (#22664) on Tue Jan 18 17:11:05 2022 PST";
-.
+"Last modified by Fengshui (#22664) on Wed Jan 19 21:55:14 2022 PST";.
 
 @verb me:@make-package any any any rxd
 @program me:@make-package
@@ -53,25 +75,23 @@ $mpm:log_installed_package(origin_object, package_map);
 "- rename fully serialize parent to fully serialize ancestry";
 "- store if the programmer needs to be a wiz, essentially if any verbs are owned by a $wiz";
 "- figure out how to add some colorz";
-"- add an --ignore-verbs list so you can ignore things like player:tell";
-"- serialize all cored references for an object using $mpm:corified_as";
-"- make the ignore props code do something";
 "- test with verbs and props that have an extra : like for waifs";
 "- figure out how to handle binary in props -- use @compare after serializing $su which has a binary_conversions code";
 "-- ;$critical($su.ascii == decode_binary(\" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~7E~09\"))";
 "-- decode_binary may be returning a space for a tab?";
 "-- something with how it's decoding, where we might need to reencode props?";
 "- make sure we are calling out ToastStunt in the repo and in the lambda-moo guide";
-"- add an option for --only-include-props=props";
 "- make sure when we are adding new names to verbs we call it out";
 "- add ability to save default options that are used, such as ignore-prop-list";
-"- add ability to specify a post-install verb to run";
-"- add version of the package manager that a package was created with";
 "- figure out what happens when we are dealing with waifs";
 "- add a strip VMS option";
-"- add an target self option so verbs can be installed on the wizard running the package";
+"- test package with no ancesetry";
 if (!dobjstr)
-  player:tell("Usage: @make-package <obj> [--select-verbs [, --fully-serialize-ancestry [, --serialize-#1 [, --verb-list=verb,verb2 [, --ignore-prop-list=prop,obj.prop2 [, --reset-prop-value-list:=obj.prop,obj.prop2 [, --only-origin-object [, --dry-run]]]]]]]");
+  player:tell("Usage: @make-package <obj> [--select-verbs  --fully-serialize-ancestry  --serialize-#1  --verb-list=verb,verb2  --ignore-prop-list=prop,obj.prop2");
+  player:tell("                            --ignore-all-props  --reset-prop-value-list:=obj.prop,obj.prop2  --only-origin-object  --ignore-all-cored-props");
+  player:tell("                            --ignore-all-non-cored-props  --only-include-prop-list=#1.name,last_connect_time  --target-self");
+  player:tell("                            --dont-serialize-cored-aliases  --post-install-verb=verbname  --allow-dynamic-verb-calls  --allow_dynamic-prop-calls");
+  player:tell("                            --dont-serialize-ancestry  --dry-run]");
   player:tell("See the documentation for more info on how to use the args: https://github.com/sevenecks/moo-package-manager");
   return;
 endif
@@ -106,6 +126,14 @@ if (!$mpm:confirm_package_creation_options(options, verbs, package_map))
   return player:tell("Package creation aborted.");
 endif
 package_map["package_data"] = $mpm:package_serialize(package_object, verbs, $object_utils:all_properties(package_object), options);
+if (options["post_install_verb"])
+  package_map["package_post_install_verb"] = options["post_install_verb"];
+endif
+"if this package is targetting the installer, we add this flag so that upon installation we can perform special behavior";
+if (options["target_self"])
+  package_map["package_target_self"] = true;
+endif
+"HASH NEEDS TO BE LAST!";
 package_map["package_hash"] = string_hash(toliteral(package_map["package_data"]), "MD5");
 json_package_data = generate_json(package_map, "embedded-types");
 "store a hash for future facing reasons";
@@ -124,8 +152,7 @@ else
   $mpm:log_created_package(package_object, package_map);
   player:tell("Package Map saved to $mpm.last_created_package_map prop, packaged base64 (use for export) saved to $mpm.last_created_package_encoded");
 endif
-"Last modified by Fengshui (#22664) on Tue Jan 18 19:13:20 2022 PST";
-.
+"Last modified by Fengshui (#22664) on Wed Jan 19 22:21:06 2022 PST";.
 
 @verb me:@view-package any none none rxd
 @program me:@view-package
@@ -143,7 +170,9 @@ elseif (dobjstr == "created")
 else
   return player:tell("Usage: @view-package created or @view-package loaded");
 endif
-"Last modified by Fengshui (#22664) on Tue Jan 18 18:36:27 2022 PST";
+"VMS NOTE slither auto note #22664 01/18/22  7:28";
+"VMS VERSION 1.0";
+"Last modified by Fengshui (#22664) on Tue Jan 18 19:28:35 2022 PST";
 .
 
 @verb me:@load-package none none none rxd
@@ -151,6 +180,7 @@ endif
 "load a package for processing";
 "- make a strip_binary verb that loops over a list and pulls out the strings";
 "- figure out how we are going to load the package header information";
+"- gracefully handle \"404: Not Found\"";
 url = "";
 options = {"1. View Available Packages", "2. Load package directly from URL"};
 player:tell_lines(options);
@@ -223,6 +253,6 @@ endif
 data = decode_binary(data);
 data = decode_base64(data[1]);
 $mpm.loaded_package = data;
-player:tell("Package imported. You can view it with @view-package or install it with @import-package");
-"Last modified by Fengshui (#22664) on Mon Jan 17 20:27:56 2022 PST";
+player:tell("Package imported. You can view it with '@view-package loaded' or install it with @install-package");
+"Last modified by Fengshui (#22664) on Wed Jan 19 20:50:31 2022 PST";
 .

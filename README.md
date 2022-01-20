@@ -3,6 +3,9 @@
 ## About
 The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serialized map is then encoded and can then be copied to another MOO / made available online and installed via the MOO Package Manager.
 
+## Change Log
+All changes to this repo or the MPM itself are logged in [CHANGELOG.md](CHANGELOG.md)
+
 ## Warnings
 
 * The MOO Package Manager is in `open beta` and should be considered only mildly stable. You use this code at your own risk.
