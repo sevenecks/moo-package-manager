@@ -224,6 +224,7 @@ There are a number of meta data fields associated with your package. These field
 | Name| Description | Required |
 | ------------- | ------------- | ------------- | 
 | Package Name | Name of your package, this should NOT include a version number | yes |
+| Package Id | The id of your package. This will carry over each time you create a new version of the package | yes |
 | Package Version | A float. Like 1.0 or 1.1, the version of your package | yes |
 | Package Hash | An md5 hash of your package map, auto generated when you create a package | yes |
 | Package Description | The description of your package. This is shown when browsing a package repository and when viewing/installing a package | yes |
@@ -232,6 +233,8 @@ There are a number of meta data fields associated with your package. These field
 | Package URL | The url where the package can be found online. | no |
 | Package Changelog | Holds the most recent updates to the package, for when you are updating an existing package | no |
 | Package Post Install Note | A note shown to the user when the package is finished installing. Good for any additional setup options, or pointing to help files | no |
+| Package Post Install Verb | A verb that gets run when the package finishes installing | no |
+| Package Target Self | Notifies the package manager that the target of this package is the `wizard` installing the package | no |
 | MPM Version | The version of MPM that was used to create the package | yes |
 
 ### Testing a Created Package
