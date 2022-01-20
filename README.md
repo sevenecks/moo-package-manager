@@ -198,7 +198,7 @@ All other property values (such as WAIF, ANON, ERR) will throw `E_ARGS` with the
 An example of serializing the MPM Helper Verbs that a `wizard` uses to make/load/install packages:
 
 ```
-@make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --dry-run
+@make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --target-self --dry-run
 ```
 
 In the above example we made use of a variety of command-line options:
@@ -210,6 +210,7 @@ In the above example we made use of a variety of command-line options:
 * `--allow-dynamic-verb-calls` so that `@install-package` (which can dynamically call a verb on the installed package when install completes) doesn't raise an error when MPM detects the dynamic verb call
 * `--dry-run` so we can test out packaging without saving the package to `.created_packages`.
 * `--ignore-all-non-cored-props` so that we don't serialize any of the props on #22664 (good thing too, since `player` bits typically have a lot of props
+* `--target-self` to make this package install on the `player` who runs `@install-package`
 
 ### Package Meta Data
 

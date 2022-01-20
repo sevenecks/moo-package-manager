@@ -16,6 +16,7 @@
 * Added --dont-serialize-ancestry  option
 * Updated how options are displayed when confirming package creation options, now only displaying if true/has a value to avoid spam
 * Added package_id which will be unique for each package, and carry over when packages are updated
+* Fixed @load-package message to point to @install-package and not @import-package
 
 ## [1.0.2] - 2022.01.19 1:41AM
 * Added read selection package
