@@ -1,4 +1,4 @@
-# MOO Package Manager (MPM) 1.0
+# MOO Package Manager (MPM) 1.1
 
 ## About
 The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serialized map is then encoded and can then be copied to another MOO / made available online and installed via the MOO Package Manager.
