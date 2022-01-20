@@ -159,8 +159,17 @@ This is due to the fact that we can't smartly serialize these references without
 | --serialize-#1 | enable full serialization of ancestors whose parent is $nothing | no |
 | --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!) | no |
 | --ignore-prop-list=propname1,propname2,#20.propname,... | if no obj# is provided, ignores any prop on any object with specified propname, if obj# is provided, ignores that prop on only that obj# | no |
-| --reset-prop-value-list=obj.prop,obj.prop,...| if provided, when serializing obj.prop it will be reset to an empty version of whatever value it holds to an empty/false value. | no |
+| --reset-prop-value-list=obj.prop,obj.prop,... | if provided, when serializing obj.prop it will be reset to an empty version of whatever value it holds to an empty/false value. | no |
 | --only-origin-object | Ignore all package dependencies and only serialize the origin object + ancestry | no |
+| --ignore-all-cored-props | Ignore all cored properties, meaning the props & objects they reference will not be serialized in the package | no |
+| --dont-serialize-cored-aliases | If any object being serialized has cored aliases, such as $string_utils, they will not be included |
+| --ignore-all-non-cored-props | Ignores any properties defined on objects, causing them to not be serialized in the package |
+| --only-include-prop-list=obj.prop1,prop2,... | Only serialize properties included in this list | no |
+| --post-install-verb=verbname | Specify a verb that will be automatically run after a successful installation. Verb must exist on `origin object` and cannot accept any arguments. | no |
+| --target-self | this option overrides the default behavior and forces the package to be installed on the `player` installing it. Must be used in conjunction with --only-origin-object | no |
+| --allow-dynamic-verb-calls | this will prevent package creation from aborting when a dynamic verb call is detected. use with care. | no | 
+| --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
+| --dont-serialize-ancestry |
 | --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
 
 > Note: Arguments can be provided in any order, except for the object number, which must be first.
@@ -185,6 +194,22 @@ The `--reset-prop-value-list` argument can only reset certain properties:
 | OBJ | #-1 |
 
 All other property values (such as WAIF, ANON, ERR) will throw `E_ARGS` with the value it failed to reset, and package creation will be aborted.
+
+An example of serializing the MPM Helper Verbs that a `wizard` uses to make/load/install packages:
+
+```
+@make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --dry-run
+```
+
+In the above example we made use of a variety of command-line options:
+* `--verb-list` to specify the ONLY verbs on the object we wanted to serialize
+* `--only-origin-object` to only serialize the `origin object ` thus MPM does not to dive into the dependency graph
+* `--ignore-all-cored-props` so we don't get cored references in our package map, that we wouldn't be using anyway
+* `--dont-serialize-cored-aliases` so we don't serialize any props on $sysobj that point to the `origin object`
+* `--dont-serialize-ancestry` so we don't package up the parents of the `origin object`
+* `--allow-dynamic-verb-calls` so that `@install-package` (which can dynamically call a verb on the installed package when install completes) doesn't raise an error when MPM detects the dynamic verb call
+* `--dry-run` so we can test out packaging without saving the package to `.created_packages`.
+* `--ignore-all-non-cored-props` so that we don't serialize any of the props on #22664 (good thing too, since `player` bits typically have a lot of props
 
 ### Package Meta Data
 
@@ -338,6 +363,9 @@ If you would like to add another package repository, you can register that repos
 ## Unsupported
 * Does not support dynamic verb or prop references (IE: $string_utils:("verbname") or $string_utils.(propvar))
 * Does not support serializing verbs/props that have binary data in them (IE: ~OE)
+
+## Known Issues
+* There is some issue with generate_json where it fails saying invalid argument when passing a package_map at certain times. I'm trying to track down what it is. It might be on very large maps, or it might be certain characters being in the map. If you have this issue and can pin it down let me know.
 
 ## Contributing
 
