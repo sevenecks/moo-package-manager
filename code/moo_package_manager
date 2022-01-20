@@ -1,1981 +1,4400 @@
 @prop $mpm."debuging" 1 rw
+
 @prop $mpm."log" {} rw
 ;;$mpm.("log") = {}
+
 @prop $mpm."installed_packages" [] r
+
+@prop $mpm."created_packages" [] r
 @prop $mpm."loaded_package" "" r
-@prop $mpm."last_created_package_map" [] r
+
+@prop $mpm."last_created_package_map" []] r
+
 @prop $mpm."last_created_package_encoded" "" r
+
 @prop $mpm."registered_repositories" ["Slither's MOO Packages" -> "https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/package_list"] r
-@prop $mpm."package_manager_version" 1.0 r
+
+@prop $mpm."package_manager_version" 1.1 r
+
 ;;$mpm.("aliases") = {"MOO", "Package", "Manager", "MOO Package Manager"}
+
 ;;$mpm.("description") = "This is a placeholder parent for all the $..._utils packages, to more easily find them and manipulate them. At present this object defines no useful verbs or properties. (Filfre.)"
 
 @verb $mpm:"corified_as" this none this
+
 @program $mpm:corified_as
+
 ":corified_as(OBJ object) => LIST";
+
 "takes an object and returns it's corified reference";
+
 {object} = args;
+
 matches = {};
+
 if (typeof(object) != OBJ)
+
   return matches;
+
 elseif (!$recycler:valid(object))
+
   return matches;
+
 endif
+
 for prop in (properties(#0))
+
   yin(0);
+
   if (#0.(prop) == object)
+
     matches = {@matches, prop};
+
   endif
+
 endfor
+
 return matches;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:00 2022 PST";
+
 .
+
 
 @verb $mpm:"match_cored_verbs_in_code" this none this
+
 @program $mpm:match_cored_verbs_in_code
+
 ":match_cored_verbs_in_code(LIST verbcode) => LIST";
+
 "you pass this verb a list of code and it returns all the corified verbs in it";
+
 {verbcode} = args;
+
 corified_references = {};
+
 for line in (verbcode)
+
   if (comment_result = $mpm:match_comment(line))
+
     "we have a comment, we ignore as they often have references we don't care about";
+
     continue;
+
   endif
+
   "TODO: this will technically fuck up dynamic property and verb references like $something.(\"prop\")";
+
   "so we need to figure out a solution to that";
+
   "";
+
   "we need to deal with quotes in lines of code by stripping them out, since we have weird";
+
   "references and regexp matches in strings like in $gender_utils";
+
   line = $mpm:strip_quoted_strings(line);
+
   result = pcre_match(line, "\\$[a-z0-9_]+:[a-z0-9_]+[^(]", 0, 1);
+
   if (!result)
+
     continue;
+
   endif
+
   for match in (result)
+
     corified_references = setadd(corified_references, match["0"]["match"][2..$]);
+
   endfor
+
 endfor
+
 return corified_references;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:00 2022 PST";
+
 .
+
 
 @verb $mpm:"match_comment" this none this
+
 @program $mpm:match_comment
+
 ":match_comment(STR line) => LIST";
+
 "checks if this line starts with a string, making it a literal";
+
 "technically this means that shit operating on primatives will be found but fuck primatives";
+
 {line} = args;
+
 return pcre_match(line, "^[ ]*\"");
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:00 2022 PST";
+
 .
+
 
 @verb $mpm:"match_cored_props_in_code" this none this
+
 @program $mpm:match_cored_props_in_code
+
 ":cored_props_in_code(LIST verbcode) => LIST";
+
 "you pass this verb a list of code and it returns all the corified props in it";
+
 "in the form of $something.somethingelse";
+
 "TODO: add support for $prop";
+
 {verbcode} = args;
+
 corified_references = {};
+
 for line in (verbcode)
+
   yin(0);
+
   if (comment_result = $mpm:match_comment(line))
+
     "we have a comment, we ignore as they often have references we don't care about";
+
     continue;
+
   endif
+
   result = pcre_match(line, "\\$[a-z0-9_]+\\.[a-z0-9_]+[^ [(;)]", 0, 1);
+
   if (!result)
+
     continue;
+
   endif
+
   for match in (result)
+
     yin(0);
+
     "TODO: make this better so it doesn't match verbs";
+
     "so, I'm not great at regex and this above shit is going to match $something:whatever";
+
     "technically this will ignore any props that are 'something:' but who the fuck is doing that with props?";
+
     if (index(match["0"]["match"], ":"))
+
       continue;
+
     elseif (index(match["0"]["match"], ")"))
+
       this:tell_debug(depth, "ERROR in index match in match-cored_props_in_code");
+
     endif
+
     corified_references = setadd(corified_references, match["0"]["match"][2..$]);
+
   endfor
+
   "so, since MOO is cray and you can have a $prop we need to scan for those";
+
   "and then check if it's a verb";
+
 endfor
+
 return corified_references;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:55:17 2022 PST";
+
 .
+
 
 @verb $mpm:"match_direct_cored_in_code" this none this
+
 @program $mpm:match_direct_cored_in_code
+
 ":match_direct_cored_in_code(LIST verbcode, STR type) => LIST";
+
 "matches $cored references to props or verbs based on TYPE";
+
 "returns a list of the references";
+
 "these are props like $MAXINT or verbs like $do_login_command()";
+
 "and not OBJECTS like $string_utils";
+
 "TYPE should be 'prop' or 'verb'";
+
 {verbcode, type} = args;
+
 corified_references = {};
+
 for line in (verbcode)
+
   if (comment_result = $mpm:match_comment(line))
+
     "we have a comment, we ignore as they often have references we don't care about";
+
     continue;
+
   endif
+
   result = pcre_match(line, "(\\$[a-z0-9_]+[^(:;.[])", 0, 1);
+
   if (!result)
+
     continue;
+
   endif
+
   for match in (result)
+
     temp_reference = match["0"]["match"][2..$];
+
     if ((type == "prop") && $object_utils:has_property($sysobj, temp_reference))
+
       corified_references = setadd(corified_references, match["0"]["match"][2..$]);
+
     elseif ((type == "verb") && $object_utils:has_verb($sysobj, temp_reference))
+
       "we make these follow the same form as other corified references, IE: sysobj:vebrname";
+
       "this makes parsing them later easier";
+
       corified_references = setadd(corified_references, tostr("sysobj:", match["0"]["match"][2..$]));
+
     endif
+
   endfor
+
 endfor
+
 return corified_references;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:01 2022 PST";
+
 .
+
 
 @verb $mpm:"package_serialize_parent" this none this
+
 @program $mpm:package_serialize_parent
+
 ":package_serialize_parent(OBJ parent, MAP options, MAP dependency_map, ?INT depth = 0) => MAP";
+
 "serialize the data we want on a parent object";
+
 try
+
   {parent, options, dependency_map, ?depth = 0} = args;
+
   if (parent == $nothing)
+
     "special case for #-1";
+
     parent_map = ["object" -> parent];
+
   elseif ((parent(parent) == $nothing) && (!options["serialize_#1"]))
+
     "so, it gets real hairy if you have a big #1 verb.";
+
     "so we are not going to serialize #1 and it's dependencies";
+
     "unless explictly asked to";
+
     "NOTE: technically your base object might not be #1, so essenitally we check if";
+
     "the parent() of `parent` is $nothing, and assume that's a base object and thus";
+
     "we don't serialize it";
-    parent_map = $mpm:package_initialize_for_object(parent);
+
+    parent_map = $mpm:package_initialize_for_object(parent, options);
+
   else
+
     if (options["fully_serialize_parent"])
+
       "if we are fully serializing we want the verbs and props on the parent";
+
       verbs = verbs(parent);
+
       props = $object_utils:all_properties(parent);
     else
+
       "we aren't fully serializing so we only serialize the `missing_this_verbs` which are verbs";
+
       "that were referenced in parent code but not defined on parent, or on parent but pass()'d";
       if (maphaskey(dependency_map["missing_parent_verbs"], parent))
+
         verbs = dependency_map["missing_parent_verbs"][parent];
+
       else
+
         verbs = {};
+
       endif
+
       props = {};
+
     endif
+
     parent_map = $mpm:package_serialize(parent, verbs, props, options, dependency_map, depth + 1);
+
   endif
+
   return parent_map;
+
 except e (E_PERM)
+
   this:tell_debug(depth, "error while trying to serialize parent: ", parent);
+
   raise(e);
+
 endtry
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:01 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 17:21:29 2022 PST";
+
 .
+
 
 @verb $mpm:"package_serialize_properties" this none this
+
 @program $mpm:package_serialize_properties
+
 ":package_serialize_properties(OBJ object, LIST props, MAP options, INT depth) => MAP";
+
 "serialize an objects properties as provided by props";
+
 {object, props, options, depth} = args;
+
 prop_map = ["property_names" -> props];
+
 prop_map["property_data"] = [];
+
 for prop in (props)
+
   "check to see if we need to reset this objects properties";
+
   if (maphaskey(options["object_prop_reset_list"], object) && (prop in options["object_prop_reset_list"][object]))
+
     reset_value = $mpm:get_reset_property_value(object.(prop));
+
     this:tell_debug(depth, "reset ", object, ".", prop, " to ", toliteral(reset_value));
+
     prop_map["property_data"][prop] = ["value" -> reset_value];
+
   else
+
     prop_map["property_data"][prop] = ["value" -> object.(prop)];
+
   endif
+
   prop_map["property_data"][prop]["info"] = property_info(object, prop);
+
 endfor
+
 return prop_map;
+
 "Last modified by Fengshui (#22664) on Tue Jan 18 18:11:16 2022 PST";
+
 .
+
 
 @verb $mpm:"package_initialize_for_object" this none this
+
 @program $mpm:package_initialize_for_object
-":package_initialize_for_object(OBJ object) => MAP";
+
+":package_initialize_for_object(OBJ object, MAP options) => MAP";
+
 "this will return the initial map for a package or dependency";
-{object} = args;
+
+{object, options} = args;
+
 package_map = [];
+
 package_map["object"] = object;
+
 package_map["name"] = object.name;
+
 package_map["aliases"] = object.aliases;
-package_map["corified_references"] = $mpm:corified_as(object);
+
+if (options["dont_serialize_cored_aliases"])
+
+  package_map["corified_references"] = {};
+
+else
+
+  package_map["corified_references"] = $mpm:corified_as(object);
+
+endif
+
 return package_map;
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:01 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 17:20:59 2022 PST";
+
 .
 
+
 @verb $mpm:"graph_verb_exists" this none this
+
 @program $mpm:graph_verb_exists
+
 ":graph_verb_exists(OBJ object, STR verbname, MAP dependency_graph, ?INT depth = 0) => BOOL";
+
 "determine if a verb already exists in our dependency graph";
+
 {object, verbname, dependency_graph, ?depth = 0} = args;
+
 try
+
   if (!dependency_graph)
+
     "no dependency graph at this level";
+
     return false;
+
   elseif (typeof(dependency_graph) == LIST)
+
     this:tell_debug(depth, toliteral(dependency_graph));
+
     raise(E_TYPE, "got list, expected map");
+
   elseif ((((maphaskey(dependency_graph, "object") && maphaskey(dependency_graph, "verbs")) && maphaskey(dependency_graph["verbs"], "verb_names")) && (dependency_graph["object"] == object)) && (verbname in dependency_graph["verbs"]["verb_names"]))
+
     "verb exists in the map at this level";
+
     return true;
+
   endif
+
   "we need to check the inprogress dependency graph to make sure we haven't already serialized this";
+
   if (maphaskey(dependency_graph, "inprogress_dependency_graph"))
+
     "inprog dependency graph has for [n -> graphdata, n+1 -> graphdata]";
+
     "where n = depth that we were at when we set it";
+
     for graph in (dependency_graph["inprogress_dependency_graph"])
+
       for temp_graph, temp_object in (graph)
+
         if ($mpm:graph_verb_exists(object, verbname, temp_graph, depth + 1))
+
           "verb exists in inprogress depenecy graph at this level";
+
           return true;
+
         endif
+
       endfor
+
     endfor
+
   endif
+
   "let's check the `parent_data` map, which is where we store data on the parentage heirarchy";
+
   if (maphaskey(dependency_graph, "parent_data"))
+
     if ($mpm:graph_verb_exists(object, verbname, dependency_graph["parent_data"], depth + 1))
+
       return true;
+
     endif
+
   endif
+
   "let's check the `verbs` map, which is where we store more completed parts of our current processing";
+
   if (maphaskey(dependency_graph, "verb_map"))
+
     "this will be in the form of [n -> graphdata, ...] where n is the depth we were at";
+
     for graph in (dependency_graph["verb_map"])
+
       if ($mpm:graph_verb_exists(object, verbname, graph, depth + 1))
+
         return true;
+
       endif
+
     endfor
+
   endif
+
   "now we check the dependent verb map which is finalized, at least for this level";
+
   "though that doesn't mean it's actually been returned to the primary serializer";
+
   if ((!maphaskey(dependency_graph, "dependent_verb_map")) || (!dependency_graph["dependent_verb_map"]))
+
     "no dependent objs/verbs at this level";
+
     return false;
+
   endif
+
   for value, key in (dependency_graph["dependent_verb_map"])
+
     "this will be a map in the form [obj -> [$mpm:package_serialize_verbs] ...";
     "that means that the value will be its own dependency graph we can recuse through";
     this:tell_debug(depth, toliteral(mapkeys(dependency_graph["dependent_verb_map"])));
+
     if (depth > 45)
+
       raise(E_REC, "reached depth of 45 and aborted, you can remove this or up the depth allowed");
+
     endif
+
     if ($mpm:graph_verb_exists(object, verbname, value, depth + 1))
+
       return true;
+
     endif
+
   endfor
+
   return false;
+
 except e (E_NONE)
+
   this:tell_debug(depth, "graph failure for ", toliteral(dependency_graph));
+
   raise(e);
+
 endtry
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:02 2022 PST";
+
 .
+
 
 @verb $mpm:"tell_debug" this none this
+
 @program $mpm:tell_debug
+
 ":tell_debgug(INT depth, STR message)";
+
 "tell debug if debugging is on";
+
 depth = args[1];
+
 message = tostr(@args[2..$]);
+
 if (!this.debuging)
+
   return;
+
 endif
+
 player:tell(depth, ": ", $string_utils:space(depth), message);
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:28:13 2022 PST";
+
 .
+
 
 @verb $mpm:"display_package" this none this
+
 @program $mpm:display_package
+
 ":display_package(STR json, ?INT depth = 0)";
+
 "display all a packages data";
+
 {json, ?depth = 0} = args;
+
 package_map = parse_json(json, "embedded-types");
+
 this:display_package_meta(package_map, depth);
+
 this:display_package_data(package_map["package_data"], depth);
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:55 2022 PST";
+
 .
+
 
 @verb $mpm:"strip_quoted_strings" this none this
+
 @program $mpm:strip_quoted_strings
+
 ":strip_quoted_string(STR line) => STR";
+
 "return a string with all the quoted sections removed";
+
 {line} = args;
+
 return pcre_replace(line, "s!\"([^\"]*)\"!REPLACED_WITH_STRING!g");
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:28:22 2022 PST";
+
 .
+
 
 @verb $mpm:"package_serialize" this none this
+
 @program $mpm:package_serialize
+
 ":package_serialize(OBJ object, LIST verbs, LIST props, MAP options, ?MAP dependency_map = [], ?INT depth = 0) => MAP";
+
 "serialize the object";
+
 "dependency_map can be optionally passed in for when we are recursing through";
+
 "more than the base package object, so we can avoid serializing shit we've already got";
+
 "depth is how far we are in the map";
+
 "TODO: we need to deal with verbs with multiple names";
+
 {object, verbs, props, options, ?dependency_map = [], ?depth = 0} = args;
+
 "DEPENDENCY_MAP is built over time as we recurse through the stack downwards";
+
 "this is why we merge the current depths PACKAGE_MAP into it, as if we go down";
+
 "and then back up and then down again, we need to maintain the dependency graph with all the data";
+
 if (!maphaskey(dependency_map, "inprogress_dependency_graph"))
+
   dependency_map["inprogress_dependency_graph"] = [];
+
 endif
+
 "this will hold the verbs that are called on the object we are serializing, but exist only on the parent";
+
 "or the verbs that get pass()'d to the parent";
+
 if (!maphaskey(dependency_map, "missing_parent_verbs"))
+
   dependency_map["missing_parent_verbs"] = [];
+
 endif
+
 "we need to setup our options for dependencies, as they are slightly different.";
+
 "we don't ever fully serialize dependency parents -- at least at this point";
+
 dependency_options = options;
+
 dependency_options["fully_serialize_parent"] = false;
+
 if (!maphaskey(dependency_map, "verbs"))
+
   this:tell_debug(depth, "initialzing dependency map with empty verbs");
+
   "This means we are at our first depth, dealing with the primary object being packaged";
+
   "we need to deal with the parent tree, and get it fully serialized, but we don't";
+
   "want to fully serialize all the verbs and props on all the parents dependencies";
+
   "which means we need a fully_serialize parent flag";
+
   "there may be some wonkiness with this, as when we serialize the parent, if there are";
+
   "corified references to a child's verb, those will get stored if we aren't careful.";
+
   "thats why we build the parent AFTER we get the verbs/props for the primary object";
+
   "but before we get the primary object's dependencies";
+
   dependency_map["verb_map"] = [];
+
   dependency_map["parents"] = [];
+
 endif
+
 "Now we need to remove any of the props we are ignoring in general or for this object specifically";
+
 all_ignore_prop_list = maphaskey(options, "all_ignore_prop_list") ? options["all_ignore_prop_list"] | {};
+
 object_prop_ignore_list = (maphaskey(options, "object_prop_ignore_list") && maphaskey(options["object_prop_ignore_list"], object)) ? options["object_prop_ignore_list"][object] | {};
+
 props = $set_utils:diff(props, all_ignore_prop_list, object_prop_ignore_list);
-this:tell_debug(depth, "Serializing verbs ", $string_utils:from_list(verbs, ", "), " for ", $string_utils:nn(object));
+
+"now we handle the option of ignoring ALL props";
+
+if (options["ignore_all_non_cored_props"])
+  "we've been directed to ignore all non cored props, so we shall";
+
+  props = {};
+
+endif
+
+"only go inside this is we have data in the options, otherwise we would end up with an empty $set_utils:intersection and no props";
+
+if (options["all_include_prop_list"] || options["object_prop_include_list"])
+
+  "now we handle the option of only including specific props";
+
+  all_include_prop_list = maphaskey(options, "all_include_prop_list") ? options["all_include_prop_list"] | {};
+
+  object_prop_include_list = (maphaskey(options, "object_prop_include_list") && maphaskey(options["object_prop_include_list"], object)) ? options["object_prop_include_list"][object] | {};
+
+  props = $set_utils:intersection(props, {@all_include_prop_list, @object_prop_include_list});
+
+endif
+
+"Now we start serailizing...";
+
 "PACKAGE_MAP is unique for each depth, and each depth we recurse will have its own.";
-package_map = $mpm:package_initialize_for_object(object);
+
+package_map = $mpm:package_initialize_for_object(object, options);
+
+this:tell_debug(depth, "Serializing props ", $string_utils:from_list(props, ", "), " for ", $string_utils:nn(object));
+
 package_map["properties"] = $mpm:package_serialize_properties(object, props, options, depth);
+this:tell_debug(depth, "Serializing verbs ", $string_utils:from_list(verbs, ", "), " for ", $string_utils:nn(object));
+
 package_map["verbs"] = [];
 "this gives us the serialized verbs for this object, and it also gives us the references to";
+
 "the cored (TODO include 'this' references) verbs and props this objects verbs make use of";
-serialized_verb_data = $mpm:package_serialize_verb_data(object, verbs, depth);
+
+serialized_verb_data = $mpm:package_serialize_verb_data(object, options, verbs, depth);
+
 package_map["verbs"]["verb_data"] = serialized_verb_data["verb_data"];
+
+"TODO: add comments about what these two contain";
+
 all_cored_props = serialized_verb_data["all_cored_props"];
+
 all_cored_verbs = serialized_verb_data["all_cored_verbs"];
+
+"verbs defined directly on $sysobj";
+
 all_direct_cored_verbs = serialized_verb_data["all_direct_cored_verbs"];
+
+"props defined directly on $sysobj that are not pointers to objects";
+
 all_direct_cored_props = serialized_verb_data["all_direct_cored_props"];
+
 verbs_defined_on_object = serialized_verb_data["verbs_defined_on_object"];
+
 package_map["verbs"]["verb_names"] = verbs_defined_on_object;
+
 "these are the verbs that were call on our object but don't exist because they are actually on a parent";
+
 missing_parent_verbs = serialized_verb_data["missing_parent_verbs"];
+
 this:tell_debug(depth, "all cored verbs: ", toliteral(all_cored_verbs));
+
 this:tell_debug(depth, "all cored props: ", toliteral(all_cored_props));
+
 this:tell_debug(depth, "all direct cored verbs: ", toliteral(all_direct_cored_verbs));
+
 this:tell_debug(depth, "all direct cored props: ", toliteral(all_direct_cored_props));
+
 this:tell_debug(depth, "all parent verbs: ", toliteral(missing_parent_verbs));
-"let's handle direct cored props, which contains any refs to cored values";
-"this is like $string_utils or $debug_mode_on";
-"we always pass the dependency_options to this instead of options, so we don't get fully serialized parent data";
-package_map["cored_property_references"] = $mpm:package_serialize_cored_property_references(object, all_direct_cored_props, dependency_options, dependency_map, depth);
-"we now need to store the current verb map in the dependency graph";
-"this will allow us to check the current levels stuff against what we already have";
-"now and at other depths";
-dependency_map["verb_map"][depth] = package_map;
-"now we need to get the references to 'this' verbs on the object, because those verbs may be defined not on the object but on one of its parents";
-"then we resolve the this verbs to build a map of the ones that are defined on the parents that we access";
-missing_this_verbs = $mpm:package_build_this_verbs_list(object, verbs, depth);
-"how we get a list of all the verbs that pass to the parent, so we can make sure those get resolved when we package up the parent";
-pass_verbs = $mpm:package_build_pass_verbs_list(object, verbs, depth);
-"now we union the pass_verbs, missing_this_verbs, and missing_parent_verbs";
-dependency_map["missing_parent_verbs"] = $mpm:resolve_verbs_defined_on_parents(object, $set_utils:union(missing_this_verbs, pass_verbs, missing_parent_verbs), dependency_map);
-this:tell_debug(depth, "Missing Parent Verbs: ", toliteral(dependency_map["missing_parent_verbs"]));
-"serialize the parent";
-package_map["parent"] = parent(object);
-"we pass the missing verbs into the parent serializer";
-package_map["parent_data"] = $mpm:package_serialize_parent(parent(object), options, dependency_map, depth);
-"now we restore the package_map in the dependency map as it has changed";
-dependency_map["verb_map"][depth] = package_map;
-"let's now check if we are only serializing the ORIGIN object/ancestry";
-"if we are we skip all the dependencies";
-if (!options["only_origin_object"])
-  "now that we have references for all of the cored objects stored, we need to look at the verbs that we are depending on";
-  "that are outside of the package currently";
-  "so we build a map of all the obj#s and verbs that are defined that we need";
-  "TODO: we can pass in verbs matching 'this:whatever' in here";
-  dependent_verb_map = $mpm:package_build_referenced_verbs_map(object, all_cored_verbs, depth);
-  this:tell_debug(depth, "Building dependent verb map...");
-  "now we have a map and we need to make sure we haven't already captured these dependent verbs in our graph";
-  this:tell_debug(depth, "Dependent verb map: ", toliteral(dependent_verb_map));
-  populated_dependent_verb_map = [];
-  this:tell_debug(depth, "Checking dependent verb map for already serialized verbs...");
-  for dependent_verb_list, dependent_object in (dependent_verb_map)
-    yin(0);
-    temp_verb_list = {};
-    this:tell_debug(depth, "Checking verbs for ", $string_utils:nn(dependent_object));
-    missing_dependent_verbs = $mpm:package_build_missing_verbs_list(dependent_object, dependent_verb_list, dependency_map, depth);
-    "we now have a list of all the verbs that are not already in our graph";
-    if (!missing_dependent_verbs)
-      "none of the verbs we found were missing from the graph";
-      continue;
-    endif
-    this:tell_debug(depth, "Attempting to populate dependent object ", $string_utils:nn(dependent_object), " for verbs: ", $string_utils:from_list(missing_dependent_verbs, ", "));
-    populated_dependent_verb_map[dependent_object] = $mpm:package_serialize(dependent_object, missing_dependent_verbs, {}, dependency_options, dependency_map, depth + 1);
-    dependency_map["inprogress_dependency_graph"][depth] = populated_dependent_verb_map;
-  endfor
-  package_map["dependent_verb_map"] = populated_dependent_verb_map;
+
+if (options["ignore_all_cored_props"])
+
+  "we are ignoring all cored prop references";
+
+  this:tell_debug(depth, "Ignoring all cored prop references.");
+
+  package_map["cored_property_references"] = [];
+
 else
-  package_map["dependent_verb_map"] = [];
+
+  "let's handle direct cored props, which contains any refs to cored values";
+
+  "this is like $string_utils or $debug_mode_on";
+
+  "we always pass the dependency_options to this instead of options, so we don't get fully serialized parent data";
+
+  package_map["cored_property_references"] = $mpm:package_serialize_cored_property_references(object, all_direct_cored_props, dependency_options, dependency_map, depth);
+
 endif
+
+"we now need to store the current verb map in the dependency graph";
+
+"this will allow us to check the current levels stuff against what we already have";
+
+"now and at other depths";
+
+dependency_map["verb_map"][depth] = package_map;
+
+"now we need to get the references to 'this' verbs on the object, because those verbs may be defined not on the object but on one of its parents";
+
+"then we resolve the this verbs to build a map of the ones that are defined on the parents that we access";
+
+missing_this_verbs = $mpm:package_build_this_verbs_list(object, verbs, depth);
+
+"how we get a list of all the verbs that pass to the parent, so we can make sure those get resolved when we package up the parent";
+
+pass_verbs = $mpm:package_build_pass_verbs_list(object, verbs, depth);
+
+"now we union the pass_verbs, missing_this_verbs, and missing_parent_verbs";
+
+dependency_map["missing_parent_verbs"] = $mpm:resolve_verbs_defined_on_parents(object, $set_utils:union(missing_this_verbs, pass_verbs, missing_parent_verbs), dependency_map);
+
+this:tell_debug(depth, "Missing Parent Verbs: ", toliteral(dependency_map["missing_parent_verbs"]));
+
+if (options["dont_serialize_ancestry"])
+
+  "so, we've opted not to serialize any ancestry";
+
+  if (dependency_map["missing_parent_verbs"])
+
+    this:tell_debug(depth, "You have opted not to serialize ancestry but we've detected verbs on ancestors that your package may rely on: ", toliteral(dependency_map["missing_parent_verbs"]));
+
+    if (!$command_utils:yes_or_no("Do you want to continue with package creation?"))
+
+      raise(E_ARGS, "aborted due to missing parent verbs with --dont-serialize-ancestry enabled");
+
+    endif
+
+  endif
+
+  package_map["parent"] = $nothing;
+
+  package_map["parent_data"] = $mpm:package_serialize_parent($nothing, options, dependency_map, depth);
+
+else
+
+  "serialize the parent";
+
+  package_map["parent"] = parent(object);
+
+  "we pass the missing verbs into the parent serializer";
+
+  package_map["parent_data"] = $mpm:package_serialize_parent(parent(object), options, dependency_map, depth);
+
+endif
+
+"now we restore the package_map in the dependency map as it has changed";
+
+dependency_map["verb_map"][depth] = package_map;
+
+"let's now check if we are only serializing the ORIGIN object/ancestry";
+
+"if we are we skip all the dependencies";
+
+if (!options["only_origin_object"])
+
+  "now that we have references for all of the cored objects stored, we need to look at the verbs that we are depending on";
+
+  "that are outside of the package currently";
+
+  "so we build a map of all the obj#s and verbs that are defined that we need";
+
+  "TODO: we can pass in verbs matching 'this:whatever' in here";
+
+  dependent_verb_map = $mpm:package_build_referenced_verbs_map(object, all_cored_verbs, depth);
+
+  this:tell_debug(depth, "Building dependent verb map...");
+
+  "now we have a map and we need to make sure we haven't already captured these dependent verbs in our graph";
+
+  this:tell_debug(depth, "Dependent verb map: ", toliteral(dependent_verb_map));
+
+  populated_dependent_verb_map = [];
+
+  this:tell_debug(depth, "Checking dependent verb map for already serialized verbs...");
+
+  for dependent_verb_list, dependent_object in (dependent_verb_map)
+
+    yin(0);
+
+    temp_verb_list = {};
+
+    this:tell_debug(depth, "Checking verbs for ", $string_utils:nn(dependent_object));
+
+    missing_dependent_verbs = $mpm:package_build_missing_verbs_list(dependent_object, dependent_verb_list, dependency_map, depth);
+
+    "we now have a list of all the verbs that are not already in our graph";
+
+    if (!missing_dependent_verbs)
+
+      "none of the verbs we found were missing from the graph";
+
+      continue;
+
+    endif
+
+    this:tell_debug(depth, "Attempting to populate dependent object ", $string_utils:nn(dependent_object), " for verbs: ", $string_utils:from_list(missing_dependent_verbs, ", "));
+
+    populated_dependent_verb_map[dependent_object] = $mpm:package_serialize(dependent_object, missing_dependent_verbs, {}, dependency_options, dependency_map, depth + 1);
+
+    dependency_map["inprogress_dependency_graph"][depth] = populated_dependent_verb_map;
+
+  endfor
+
+  package_map["dependent_verb_map"] = populated_dependent_verb_map;
+
+else
+
+  package_map["dependent_verb_map"] = [];
+
+endif
+
 "we don't have this in our graph already";
+
 return package_map;
-"Last modified by Fengshui (#22664) on Tue Jan 18 17:48:16 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 18:46:14 2022 PST";
+
 .
+
 
 @verb $mpm:"package_serialize_verb_data" this none this
+
 @program $mpm:package_serialize_verb_data
-":package_serialize_verb_data(OBJ object, LIST verbs, INT depth) => MAP";
+
+":package_serialize_verb_data(OBJ object, MAP options, LIST verbs, INT depth) => MAP";
+
 "NOTE: for verbs with multiple names, we will technically serialize a copy for each name.";
+
 "TODO: resolve verbs with multiple names somehow";
-{object, verbs, depth} = args;
+
+{object, options, verbs, depth} = args;
+
 verbs_defined_on_object = {};
+
 all_cored_verbs = {};
+
 all_cored_props = {};
+
 all_direct_cored_verbs = {};
+
 all_direct_cored_props = {};
+
 missing_parent_verbs = {};
+
 verb_data = [];
+
 for verbname in (verbs)
+
   if (!$object_utils:defines_verb(object, verbname))
+
     "verb is on a parent";
+
     this:tell_debug(depth, object, " does not define ", verbname, " so we are adding to all_parent_verbs");
+
     missing_parent_verbs = setadd(missing_parent_verbs, verbname);
+
     continue;
+
   endif
+
   if (dynamic_verb_calls = $mpm:match_dynamic_verb_calls_in_code(verb_code(object, verbname)))
+
     "we can't process dynamic verb calls so we need to throw an error";
+
     this:tell_debug(depth, "Dynamic verb calls detected in ", $string_utils:nn(object), ":", verbname, " => ", toliteral(dynamic_verb_calls));
-    raise(E_VERBNF, "dynamic verb call detected. we can't process that. resolve this and repackage.");
+
+    if (!options["allow_dynamic_verb_calls"])
+
+      raise(E_VERBNF, "dynamic verb call detected. we can't process that. resolve this and repackage or use the --allow-dynamic-verb-calls option.");
+
+    endif
+
   endif
+
+  if (dynamic_prop_calls = $mpm:match_dynamic_prop_calls_in_code(verb_code(object, verbname)))
+
+    "we can't process dynamic prop calls so we need to throw an error";
+
+    this:tell_debug(depth, "Dynamic prop calls detected in ", $string_utils:nn(object), ":", verbname, " => ", toliteral(dynamic_prop_calls));
+
+    if (!options["allow_dynamic_prop_calls"])
+
+      raise(E_VERBNF, "dynamic prop call detected. we can't process that. resolve this and repackage or use the --allow-dynamic-prop-calls option.");
+
+    endif
+
+  endif
+
   "we store the verbs ACTUALLY defined on the object so we can reference it in the package";
+
   "this purposefully ignores verbs that we THOUGHT might be defined here because they were called on this object";
+
   "but might actually just be defined only on a parent";
+
   verbs_defined_on_object = setadd(verbs_defined_on_object, verbname);
+
   verb_data[verbname] = ["code" -> verb_code(object, verbname)];
+
   "get all the CORED VERBS called in the verb";
+
   cored_verbs_in_code = $mpm:match_cored_verbs_in_code(verb_code(object, verbname));
+
   all_cored_verbs = $set_utils:union(all_cored_verbs, cored_verbs_in_code);
+
   verb_data[verbname]["cored_verbs_in_code"] = cored_verbs_in_code;
+
   "get all the CORED PROPS called in the verb";
+
   cored_props_in_code = $mpm:match_cored_props_in_code(verb_code(object, verbname));
+
   all_cored_props = $set_utils:union(all_cored_props, cored_props_in_code);
+
   verb_data[verbname]["cored_props_in_code"] = cored_props_in_code;
+
   "get all the DIRECT CORED VERBS (ie: $critical() or $alert()) called in the verb";
+
   direct_cored_verbs_in_code = $mpm:match_direct_cored_in_code(verb_code(object, verbname), "verb");
+
   all_direct_cored_verbs = $set_utils:union(all_direct_cored_verbs, direct_cored_verbs_in_code);
+
   "now we add this to the all_cored_verbs so that any direct cored verbs will get processed as a dependency of this object";
+
   all_cored_verbs = $set_utils:union(all_cored_verbs, all_direct_cored_verbs);
+
   verb_data[verbname]["direct_cored_verbs_in_code"] = direct_cored_verbs_in_code;
+
   "get all the DIRECT CORED PROPS (ie: $debugging_enabled or $string_utils called in the verb";
+
   "this list will technically include references like $string_utils without a verb attached";
+
   direct_cored_props_in_code = $mpm:match_direct_cored_in_code(verb_code(object, verbname), "prop");
+
   all_direct_cored_props = $set_utils:union(all_direct_cored_props, direct_cored_props_in_code);
+
   verb_data[verbname]["direct_cored_verbs_in_code"] = direct_cored_props_in_code;
+
   verb_info = verb_info(object, verbname);
+
   "log if the prog is a wiz";
+
   verb_data[verbname]["wizard"] = verb_info[1].wizard;
+
   verb_data[verbname]["info"] = verb_info;
+
   verb_data[verbname]["args"] = verb_args(object, verbname);
+
 endfor
+
 return ["verb_data" -> verb_data, "all_cored_verbs" -> all_cored_verbs, "all_cored_props" -> all_cored_props, "all_direct_cored_verbs" -> all_direct_cored_verbs, "all_direct_cored_props" -> all_direct_cored_props, "missing_parent_verbs" -> missing_parent_verbs, "verbs_defined_on_object" -> verbs_defined_on_object];
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 18:06:51 2022 PST";
+
 .
 
-@verb $mpm:"package_serialize_cored_aproperty_references" this none this
+
+@verb $mpm:"package_serialize_cored_property_references" this none this
+
 @program $mpm:package_serialize_cored_property_references
-":package_serialized_cored_property_references(OBJ object, LIST cored, MAP options, MAP dependency_map, INT depth) => MAP";
+
+":package_serialize_cored_property_references(OBJ object, LIST cored, MAP options, MAP dependency_map, INT depth) => MAP";
+
 "TODO: do we need to update this to be more recursive and check if we already have a reference to the parents data?";
+
 "we are passing in dependency_map but it's just props so we aren't really checking it... could we just pass an empty map?";
+
 {object, cored, options, dependency_map, depth} = args;
+
 cored_property_references = [];
+
 for prop in (cored)
+
   yin(0);
+
   "figure out if we've already handled this";
+
   "TODO: take into account shit that is corified multiple times";
+
   for value, key in (dependency_map)
+
     "handle checking if we already have this in our map";
+
     "TODO: do this";
+
   endfor
+
   cored_property_references[prop] = ["value" -> $sysobj.(prop), "property-info" -> property_info($sysobj, prop)];
+
   "if we have an object that isn't #-1, #-2, #-3 we serialize some shit";
+
   if ((typeof($sysobj.(prop)) == OBJ) && (!($sysobj.(prop) in {#-1, #-2, #-3})))
+
     "need to handle #-1";
+
     this:tell_debug(depth, "Serializing ", prop, " as object in our cored_dependencies (", $string_utils:nn($sysobj.(prop)));
+
     "we have a pointer to an object, we need to store info on that object so we can find it or create it on import";
+
     cored_property_references[prop]["is_object"] = true;
-    cored_property_references[prop]["object_data"] = $mpm:package_initialize_for_object($sysobj.(prop));
+
+    cored_property_references[prop]["object_data"] = $mpm:package_initialize_for_object($sysobj.(prop), options);
+
     cored_property_references[prop]["object_data"]["parent_data"] = $mpm:package_serialize_parent(parent($sysobj.(prop)), options, dependency_map, depth);
+
   endif
+
 endfor
+
 return cored_property_references;
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:03 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 17:22:06 2022 PST";
+
 .
+
 
 @verb $mpm:"package_build_referenced_verbs_map" this none this
+
 @program $mpm:package_build_referenced_verbs_map
+
 ":package_build_referenced_verbs_map(OBJ object, LIST verbs, INT depth) => MAP";
+
 "take a list of something:verbname pairs and create a map, doing some";
+
 "magics for corified references to resolve them to obj#s";
+
 {object, verbs, depth} = args;
+
 referenced_verbs = [];
+
 for verb_ref in (verbs)
+
   yin(0);
+
   {ref_object_name, verb_name} = explode(verb_ref, ":");
+
   "this gets us the actual obj# we will be using, helping us avoid issues with things being referenced as $string_utils and $string_utils";
+
   ref_object = $sysobj.(ref_object_name);
+
   if (maphaskey(referenced_verbs, ref_object))
+
     referenced_verbs[ref_object] = setadd(referenced_verbs[ref_object], verb_name);
+
   else
+
     referenced_verbs[ref_object] = {verb_name};
+
   endif
+
 endfor
+
 return referenced_verbs;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:03 2022 PST";
+
 .
+
 
 @verb $mpm:"package_build_missing_verbs_list" this none this
+
 @program $mpm:package_build_missing_verbs_list
+
 ":package_build_missing_verbs_list(OBJ object, LIST verbs, MAP dependency_map, INT depth) => LIST";
+
 "build a list of verbs that we are missing from our dependency map";
+
 {object, verbs, dependency_map, depth} = args;
+
 missing_verbs = {};
+
 for verb_name in (verbs)
+
   yin(0);
+
   this:tell_debug(depth, "Checking to see if we have already have '", verb_name, "' in graph.");
+
   "this checks the primary dependency graph for a verb";
+
   if ($mpm:graph_verb_exists(object, verb_name, dependency_map, depth))
+
     this:tell_debug(depth, "'", verb_name, "' found in dependency_map.");
+
     continue;
+
   endif
+
   "WARNING I REMOVED THIS VERB_MAP CHECK DONE HERE BECAUSE I DON'T THINK IT IS NEEDED";
+
   "if ($mpm:graph_verb_exists(object, verb_name, inprogress_dependency_map, depth))";
+
   "we have not captured this verb yet";
+
   this:tell_debug(depth, "'", verb_name, "' not found in dependency graph.");
+
   missing_verbs = {@missing_verbs, verb_name};
+
 endfor
+
 return missing_verbs;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:03 2022 PST";
+
 .
+
 
 @verb $mpm:"match_this_verbs_in_code" this none this
+
 @program $mpm:match_this_verbs_in_code
+
 ":match_this_verbs_in_code(LIST verbcode) => LIST";
+
 "you pass this verb a list of code and it returns all the 'this:verb' verbs in it";
+
 {verbcode} = args;
+
 this_verbs = {};
+
 for line in (verbcode)
+
   yin(0);
+
   if (comment_result = $mpm:match_comment(line))
+
     "we have a comment, we ignore as they often have references we don't care about";
+
     continue;
+
   endif
+
   result = pcre_match(line, "this:.+?(?=\\()", 0, 1);
+
   if (!result)
+
     continue;
+
   endif
+
   for match in (result)
+
     this_verbs = setadd(this_verbs, match["0"]["match"]);
+
   endfor
+
 endfor
+
 return this_verbs;
+
 "Last modified by Fengshui (#22664) on Tue Jan 18 17:19:51 2022 PST";
+
 .
+
 
 @verb $mpm:"match_this_props_in_code" this none this
+
 @program $mpm:match_this_props_in_code
+
 ":match_this_props_in_code(LIST verbcode) => LIST";
+
 "you pass this verb a list of code and it returns all the 'this.prop' verbs in it";
+
 {verbcode} = args;
+
 this_verbs = {};
 for line in (verbcode)
+
   if (comment_result = $mpm:match_comment(line))
+
     "we have a comment, we ignore as they often have references we don't care about";
+
     continue;
+
   endif
+
   "this regex will match this.prop style references ending with [; },";
+
   result = pcre_match(line, "this\\..+?(?=[\\[; },])", 0, 1);
+
   if (!result)
+
     continue;
+
   endif
+
   for match in (result)
+
     this_verbs = setadd(this_verbs, match["0"]["match"]);
+
   endfor
+
 endfor
+
 return this_verbs;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
 .
+
 
 @verb $mpm:"resolve_verbs_defined_on_parents" this none this
+
 @program $mpm:resolve_verbs_defined_on_parents
+
 ":resolve_verbs_defined_on_parents(OBJ object, LIST verbs, MAP dependency_map) => MAP";
+
 "this verb will take an object and a list of verb-names";
+
 "and return a MAP of [parentObj -> {verb-names}, ... ]";
+
 "for verbs not defined on the object that are instead defined on the parent";
+
 {object, verbs, dependency_map} = args;
+
 missing_verbs = dependency_map["missing_parent_verbs"];
+
 for verb_name in (verbs)
+
   yin(0);
+
   if ($object_utils:defines_verb(object, verb_name) && (!$mpm:does_verb_pass_to_parent(object, verb_name)))
+
     "defined on current object, and doesn't pass to parent so it can be ignored";
+
     continue;
+
   endif
+
   for parent in (ancestors(object))
+
     if ($object_utils:defines_verb(parent, verb_name))
+
       if (maphaskey(missing_verbs, parent))
+
         missing_verbs[parent] = setadd(missing_verbs[parent], verb_name);
+
       else
+
         missing_verbs[parent] = {verb_name};
+
       endif
+
       if (!$mpm:does_verb_pass_to_parent(parent, verb_name))
+
         "verb doesn't pass to parent so we are done";
+
         break;
+
       endif
+
       "if we were to get to here it means the verb was defined on this parent but the parent passes to its parent";
+
     endif
+
   endfor
+
 endfor
+
 return missing_verbs;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
 .
+
 
 @verb $mpm:"does_verb_pass_to_parent" this none this
+
 @program $mpm:does_verb_pass_to_parent
+
 ":does_verb_pass_to_parent(OBJ object, STR verb_name) => NONE";
+
 "this verb will check if an object defines a verb that pass()'s to its parent";
+
 {object, verb_name} = args;
+
 for line in (verb_code(object, verb_name))
+
   if (pcre_match(line, "pass+?(?=[\\(])"))
+
     return true;
+
   endif
+
 endfor
+
 return false;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
 .
+
 
 @verb $mpm:"package_build_this_verbs_list" this none this
+
 @program $mpm:package_build_this_verbs_list
+
 ":build_this_verbs_list(OBJ object, LIST verb_names, INT depth) => LIST";
+
 "build a list of 'this:verb' that are called in the code on an object";
+
 "then prune off the 'this:'";
+
 {object, verb_names, depth} = args;
+
 this_verbs = {};
+
 for verb_name in (verb_names)
+
   if (!$object_utils:defines_verb(object, verb_name))
+
     "this verb isn't defined on this object, it's on a parent";
+
     "WARNING: if we find we are missing verbs, this is a place to investigate";
+
     continue;
+
   endif
+
   if (results = $mpm:match_this_verbs_in_code(verb_code(object, verb_name)))
+
     for result in (results)
+
       "strip off this:";
+
       result = result[6..$];
+
       this_verbs = {@this_verbs, result};
+
     endfor
+
   endif
+
 endfor
+
 return this_verbs;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
-.
-@verb $mpm:"package_build_pass_verbs_list" this none this
-@program $mpm:package_build_pass_verbs_list
-":package_build_pass_verbs_list(OBJ object, LIST verb_names, INT depth) => LIST";
-"build a list of verbs defined on the object that pass to the parent";
-{object, verb_names, depth} = args;
-pass_verbs = {};
-for verb_name in (verb_names)
-  if (!$object_utils:defines_verb(object, verb_name))
-    "this verb is defined on a parent on not this verb";
-    "WARNING: if we find we are missing verbs, we may want to investigate here.";
-    continue;
-  endif
-  if ($mpm:does_verb_pass_to_parent(object, verb_name))
-    pass_verbs = {@pass_verbs, verb_name};
-  endif
-endfor
-return pass_verbs;
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
 .
 
-@verb $mpm:"match_dynamic_verb_calls_in_code tnt rxd" this none this
-@program $mpm:match_dynamic_verb_calls_in_code
-":match_dynamic_verb_calls_in_code(LIST verbcode) => LIST";
-"you pass this verb a list of code and it returns all the potential dynamic verbs in it";
-"WARNING: we can't parse these, so the code calling this probably needs to throw an error";
-"if it detects results";
-{verbcode} = args;
-dynamic_verb_calls = {};
-for line in (verbcode)
-  if (comment_result = $mpm:match_comment(line))
-    "we have a comment, we ignore as they often have references we don't care about";
+
+@verb $mpm:"package_build_pass_verbs_list" this none this
+
+@program $mpm:package_build_pass_verbs_list
+
+":package_build_pass_verbs_list(OBJ object, LIST verb_names, INT depth) => LIST";
+
+"build a list of verbs defined on the object that pass to the parent";
+
+{object, verb_names, depth} = args;
+
+pass_verbs = {};
+
+for verb_name in (verb_names)
+
+  if (!$object_utils:defines_verb(object, verb_name))
+
+    "this verb is defined on a parent on not this verb";
+
+    "WARNING: if we find we are missing verbs, we may want to investigate here.";
+
     continue;
+
   endif
-  "we need to deal with quotes in lines of code by stripping them out, since we have weird";
-  "references and regexp matches in strings like in $gender_utils";
-  line = $mpm:strip_quoted_strings(line);
-  result = pcre_match(line, "\\$[a-z0-9_]+:\\(.+\\)", 0, 1);
-  if (!result)
-    continue;
+
+  if ($mpm:does_verb_pass_to_parent(object, verb_name))
+
+    pass_verbs = {@pass_verbs, verb_name};
+
   endif
-  for match in (result)
-    dynamic_verb_calls = setadd(dynamic_verb_calls, match["0"]["match"]);
-  endfor
+
 endfor
-return dynamic_verb_calls;
+
+return pass_verbs;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
 .
+
+
+@verb $mpm:"match_dynamic_verb_calls_in_code" this none this
+
+@program $mpm:match_dynamic_verb_calls_in_code
+
+":match_dynamic_verb_calls_in_code(LIST verbcode) => LIST";
+
+"you pass this verb a list of code and it returns all the potential dynamic verbs in it";
+
+"WARNING: we can't parse these, so the code calling this probably needs to throw an error";
+
+"if it detects results";
+
+{verbcode} = args;
+
+dynamic_verb_calls = {};
+
+for line in (verbcode)
+
+  if (comment_result = $mpm:match_comment(line))
+
+    "we have a comment, we ignore as they often have references we don't care about";
+
+    continue;
+
+  endif
+
+  "we need to deal with quotes in lines of code by stripping them out, since we have weird";
+
+  "references and regexp matches in strings like in $gender_utils";
+
+  line = $mpm:strip_quoted_strings(line);
+
+  "this should detect dobj:( and $something:(";
+
+  result = pcre_match(line, "[a-z0-9_]+:\\(.+\\)", 0, 1);
+
+  if (!result)
+
+    continue;
+
+  endif
+
+  for match in (result)
+
+    dynamic_verb_calls = setadd(dynamic_verb_calls, match["0"]["match"]);
+
+  endfor
+
+endfor
+
+return dynamic_verb_calls;
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 17:54:38 2022 PST";
+
+.
+
 
 @verb $mpm:"find_object_by_cored_reference" this none this
+
 @program $mpm:find_object_by_cored_reference
+
 ":find_object_by_cored_reference(LIST cored_references, INT depth) => LIST";
+
 "this will attempt to locate an object based on the corified references passed in";
+
 "this is useful for updating packages where the obj#s don't match, but we have a cored";
+
 "reference to the object";
+
 "WARNING: there is no guarantee that the cored reference is actually referencing the correct";
+
 "object. this does allow us to make assumptions though!";
+
 {cored_references, depth} = args;
+
 valid_references = {};
+
 for ref in (cored_references)
+
   this:tell_debug(depth, "Checking $sysobj.", ref);
+
   if ($object_utils:has_property($sysobj, ref) && (typeof($sysobj.(ref)) == OBJ))
+
     this:tell_debug(depth, "Found a match: $sysobj.", ref);
+
     valid_references = {@valid_references, $sysobj.(ref)};
+
   endif
+
 endfor
+
 return valid_references;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
 .
+
 
 @verb $mpm:"package_install" this none this
+
 @program $mpm:package_install
+
 ":package_install(MAP package_map, WAIF object_waif, MAP options, ?INT depth) => NONE";
+
 "install a package!";
+
 "";
+
 "- TODO";
+
 "- deal with names being different on the parentage, even when we provide an appropriate parent";
+
 "- create ability to rollback changes using log";
+
 "- reset log each time, or keep some kind of versioning using a map";
+
 "- make ancestor rewiring happen before verbs / props are added to parent object";
+
 "- handle ancestor mappings when we select to update the object in place";
+
 {package_map, object_waif, options, ?depth = 0} = args;
+
 "let's check if the object exists on this MOO, at this point object_waif will be empty, but that's OK";
-package_object = $mpm:find_object(package_map, object_waif, depth);
+
+package_object = $mpm:find_object(package_map, object_waif, options, depth);
+
 "we've gotten this far and we don't have a matching package object, this means we need to recreate from the closest findable ancestor, or from user input";
+
 if (package_object == $nothing)
+
   "define some needed variable";
+
   use_closest_ancestor = 0;
+
   package_object = $mpm:package_recreate_objects_from_ancestor(package_map, object_waif, use_closest_ancestor, depth);
+
 endif
+
 "add the package_object to the object map";
+
 $mpm:update_object_map(object_waif, package_map["object"], package_object, depth);
+
 "build ancestry object mapping and add to waif";
-if ($mpm:does_ancestry_match(package_object, package_map, depth))
-  "if the ancestry matches, we can build the map based on the ancestry";
-  $mpm:build_ancestry_object_map(object_waif, package_object, package_map, depth);
+
+"TODO: figure out what we want to do with packages that don't serialize ancestry and if it will work";
+
+if (maphaskey(options, "package_target_self") && options["package_target_self"])
+
+  "we are targetting ourselves here so we don't need do deal with ancestry";
+
 else
-  "ancestry doesn't match, so we need to get the user to provide the proper rewiring";
-  $mpm:package_rewire_ancestors(package_object, package_map, object_waif, depth);
+
+  if ($mpm:does_ancestry_match(package_object, package_map, depth))
+
+    "if the ancestry matches, we can build the map based on the ancestry";
+
+    $mpm:build_ancestry_object_map(object_waif, package_object, package_map, depth);
+
+  else
+
+    "ancestry doesn't match, so we need to get the user to provide the proper rewiring";
+
+    $mpm:package_rewire_ancestors(package_object, package_map, object_waif, depth);
+
+  endif
+
 endif
+
 "add props/verbs/cored refs as needed to this object";
+
 $mpm:package_update_object(package_map, object_waif, depth);
+
 "handle updating the props/verbs for parent objects";
-$mpm:package_update_ancestors(package_object, package_map, object_waif, depth);
+
+if (maphaskey(options, "package_target_self") && options["package_target_self"])
+
+  "we are targetting ourselves here so we don't need do deal with ancestry";
+
+else
+  $mpm:package_update_ancestors(package_object, package_map, object_waif, depth);
+
+endif
+
 "handle dependent objects and verbs";
+
 for value, key in (package_map["dependent_verb_map"])
+
   this:tell_debug(depth, "Descending into dependent verb map for (this moo's) ", $string_utils:nn(package_object), " which is relying on verbs on (packaged object) ", package_map["dependent_verb_map"][key]["name"], " (", key, ")");
+
   $mpm:package_install(value, object_waif, options, depth = depth + 1);
+
 endfor
+
 this:tell_debug(depth, "Done creating package: ", $string_utils:nn(package_object));
+
 this:log_finished_object_map(object_waif);
+
 return package_object;
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 22:23:41 2022 PST";
+
 .
+
 
 @verb $mpm:"does_ancestry_match" this none this
+
 @program $mpm:does_ancestry_match
+
 ":does_ancestry_match(OBJ object, MAP package_map, INT depth) => BOOL";
+
 "this will check if the ancestry of an object matches what we have in";
+
 "the package map by checking the # of parents, and the names";
+
 {object, package_map, depth} = args;
+
 ancestors = ancestors(object);
+
 package_ancestors = $mpm:slice_ancestor_name_number_aliases_and_cored(package_map, depth + 1);
+
 if (length(ancestors) != length(package_ancestors))
+
   return false;
+
 endif
+
 i = 0;
+
 for package_ancestor in (package_ancestors)
+
   i = i + 1;
+
   {temp_obj, temp_name, temp_cored, temp_alisaes} = package_ancestor;
+
   if (ancestors[i].name != temp_name)
+
     return false;
+
   endif
+
 endfor
+
 return true;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
+
 .
+
 
 @verb $mpm:"slice_ancestor_name_number_aliases_and_cored" this none this
+
 @program $mpm:slice_ancestor_name_number_aliases_and_cored
+
 ":slice_ancestor_name_number_aliases_and_cored(MAP ancestor_map, INT depth) => LIST";
+
 "return an ordered list of ancestor data in form of {first_parent_obj, name}, {second_parent_obj, name} ..";
+
 {ancestor_map, depth} = args;
+
 this:tell_debug(depth, ancestor_map["parent_data"]["object"]);
-ancestor_data = {{ancestor_map["parent_data"]["object"], ancestor_map["parent_data"]["name"], ancestor_map["parent_data"]["corified_references"], ancestor_map["parent_data"]["aliases"]}};
-if (maphaskey(ancestor_map["parent_data"], "parent_data"))
-  "pass the next level parent_data";
-  ancestor_data = {@ancestor_data, @$mpm:slice_ancestor_name_number_aliases_and_cored(ancestor_map["parent_data"], depth + 1)};
+
+if (!maphaskey(ancestor_map["parent_data"], "name"))
+
+  "we don't have a name so we have $nothing";
+
+  return {{$nothing, "nothing", {}, {}}};
+
 endif
+
+ancestor_data = {{ancestor_map["parent_data"]["object"], ancestor_map["parent_data"]["name"], ancestor_map["parent_data"]["corified_references"], ancestor_map["parent_data"]["aliases"]}};
+
+if (maphaskey(ancestor_map["parent_data"], "parent_data"))
+
+  "pass the next level parent_data";
+
+  ancestor_data = {@ancestor_data, @$mpm:slice_ancestor_name_number_aliases_and_cored(ancestor_map["parent_data"], depth + 1)};
+
+endif
+
 return ancestor_data;
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 22:24:10 2022 PST";
+
 .
+
 
 @verb $mpm:"find_closest_existing_ancestor" this none this
+
 @program $mpm:find_closest_existing_ancestor
+
 ":find_closest_existing_ancestor(MAP package_map, INT depth) => LIST";
+
 "this takes in a subset (or all) of the package_map and will find the";
+
 "closest existing ancestor and return its index in the ancestor/parent map and the object#";
+
 {package_map, depth} = args;
+
 ancestor_data = $mpm:slice_ancestor_name_number_aliases_and_cored(package_map, depth);
+
 i = 0;
+
 for data in (ancestor_data)
+
   {temp_obj, temp_name, temp_cored, temp_alisaes} = data;
+
   i = i + 1;
+
   "check if temp_obj exists and has the same name as in the package";
+
   if ($mpm:is_matching_object(temp_obj, temp_name))
+
     return {i, temp_obj};
+
   elseif (temp_cored)
+
     "we didn't find an exact match, let's try based on cored refs";
+
     for temp_cored_ref in (temp_cored)
+
       if ($object_utils:defines_property($sysobj, temp_cored_ref) && $mpm:is_matching_object($sysobj.(temp_cored_ref), temp_name))
+
         return {i, $sysobj.(temp_cored_ref)};
+
       endif
+
     endfor
+
   endif
+
 endfor
+
 this:tell_debug(depth, "Unable to find a closest existing ancestor for ", package_map["object"], " which is strange and troubling.");
+
 raise(E_INVIND, "unable to find a closest existing ancestor.");
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
+
 .
+
 
 @verb $mpm:"is_matching_object" this none this
+
 @program $mpm:is_matching_object
+
 ":is_matching_object(OBJ object, STR match_name) => BOOL";
+
 "determine if the object provided is valid and matches the match_name";
+
 {object, match_name} = args;
+
 if ((!$recycler:valid(object)) || (object.name != match_name))
+
   return false;
+
 endif
+
 return true;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
+
 .
+
 
 @verb $mpm:"package_create_ancestors" this none this
+
 @program $mpm:package_create_ancestors
+
 ":create_ancestors(OBJ ancestor, INT ancestor_index_in_ancestors, MAP package_map, INT depth) => OBJ";
+
 "create the ancestors needed for the package from a common ancestor";
+
 "returns the object number of the direct ancestor to use for our package";
+
 "this does NOT add verbs and props at this point, we use package_update_objects() for that later";
+
 {ancestor, ancestor_index_in_ancestors, package_map, depth} = args;
+
 if (ancestor_index_in_ancestors == 1)
+
   "we have the direct parent of the object we are creating";
+
   return ancestor;
+
 endif
+
 "get just the slice of ancestor data we need, which is the data for all descendents of 'ancestor', reversed, so we create the lowest ancestor first";
+
 ancestor_data = reverse($mpm:slice_ancestor_name_number_aliases_and_cored(package_map, depth)[1..ancestor_index_in_ancestors - 1]);
+
 "loop ancestors from lowest to highest, finally returning the top level ancestor of the object";
 temp_parent = ancestor;
+
 temp_depth = depth;
+
 for data in (ancestor_data)
+
   {object, name, cored_references, aliases} = data;
+
   temp_depth = temp_depth + 1;
+
   temp_parent = $mpm:package_create_object(temp_parent, name, aliases, cored_references, temp_depth);
+
 endfor
+
 return temp_parent;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
+
 .
+
 
 @verb $mpm:"package_create_object" this none this
+
 @program $mpm:package_create_object
+
 ":package_create_object(OBJ parent, STR name, LIST aliases, LIST cored_references, INT depth, MAP properties, MAP verbs) => OBJ";
+
 "create an object based on provided data and return it";
+
 {parent, name, aliases, cored_references, depth, ?properties = [], ?verbs = []} = args;
+
 object = create(parent);
+
 this:log("created object", {object});
+
 object.name = name;
+
 object.aliases = aliases;
+
 this:log("set name and aliases", {object, name, aliases});
+
 this:tell_debug(depth, "New object created for package: ", $string_utils:nn(object), ".");
+
 return object;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
+
 .
+
 
 @verb $mpm:"log" this none this
+
 @program $mpm:log
+
 ":log(STR message, LIST data)";
+
 "log some data into the log";
+
 {message, data} = args;
+
 this.log = {@this.log, {message, data}};
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
+
 .
+
 
 @verb $mpm:"log_property_update" this none this
+
 @program $mpm:log_property_update
+
 ":log_property_update(OBJ object, STR propname, MIXED old, MIXED new) => NONE";
+
 "log a property update";
+
 {object, propname, old, new} = args;
+
 this:log("updated property", {propname, {"old", old}, {"new", new}});
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"log_property_add" this none this
+
 @program $mpm:log_property_add
+
 ":log_property_add(OBJ object, STR propname, MIXED new, LIST info) => NONE";
+
 "log a property update";
+
 {object, propname, new, info} = args;
+
 this:log("updated property", {object, propname, {"new", new}, {"info", info}});
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"log_property_permission_change" this none this
+
 @program $mpm:log_property_permission_change
+
 ":log_property_permission_change(OBJ object, STR propname, STR old, STR new) => NONE";
+
 "log permission changes made to a property";
+
 {object, propname, old, new} = args;
+
 this:log("updated property permissions", {object, propname, {"old", old}, {"new", new}});
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"log_verb_add" this none this
+
 @program $mpm:log_verb_add
+
 ":log_verb_add(OBJ object, STR verb_name, OBJ owner, LIST verb_info, LIST verb_args) => NONE";
+
 {object, verb_name, owner, verb_info, verb_args} = args;
+
 this:log("verb added", {object, verb_name, owner, verb_info, verb_args});
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"log_verb_update_code" this none this
+
 @program $mpm:log_verb_update_code
+
 ":log_verb_update_code(OBJ object, STR verb_name, LIST old_verb_code, LIST new_verb_code) => NONE";
+
 {object, verb_name, old_verb_code, new_verb_code} = args;
+
 this:log("verb code updated", {object, verb_name, old_verb_code, new_verb_code});
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"log_verb_update_args" this none this
+
 @program $mpm:log_verb_update_args
+
 ":log_verb_update_args(OBJ object, STR verb_name, STR old_args, STR new_args) => NONE";
+
 {object, verb_name, old_args, new_args} = args;
+
 this:log("verb args updated", {object, verb_name, old_args, new_args});
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"package_update_object" this none this
+
 @program $mpm:package_update_object
+
 ":package_update_object(MAP package_map, WAIF object_waif, INT depth) => NONE";
+
 "TODO: ";
+
 "- should we offer to update the name and aliases?";
+
 {package_map, object_waif, depth} = args;
+
 {package_object, package_object_name, cored_references} = {package_map["object"], package_map["name"], package_map["corified_references"]};
+
 if (maphaskey(package_map, "properties"))
+
   properties = package_map["properties"];
+
 else
+
   properties = [];
+
 endif
+
 if (maphaskey(package_map, "verbs"))
+
   verbs = package_map["verbs"];
+
 else
+
   verbs = [];
+
 endif
+
 "we need to check if an object map (old -> new) already exists in the object_waif, and if it doesn't we need to find it";
+
 this:tell_debug(depth, "Checking object map for (packaged object) ", package_object_name, " (", package_object, ")");
+
 if (maphaskey(object_waif.data, package_object) && $recycler:valid(object_waif.data[package_object]))
+
   "we have a match already";
+
   object = object_waif.data[package_object];
+
   this:tell_debug(depth, "Found (packaged object) ", package_object_name, " (", package_object, ") mapped to (this moo's) ", $string_utils:nn(object));
+
 else
+
   raise(E_ARGS, tostr("we don't have a map for object ", package_object));
+
 endif
+
 if (cored_references)
+
   this:tell_debug(depth, "Upserting any cored references to ", $string_utils:nn(object));
+
   $mpm:package_object_upsert_cored_references(object, cored_references, depth + 1);
+
 endif
+
 if (properties)
+
   this:tell_debug(depth, "Upserting any properties for ", $string_utils:nn(object));
+
   $mpm:package_object_upsert_properties(object, properties, depth + 1);
+
 endif
+
 if (verbs)
+
   this:tell_debug(depth, "Upserting any verbs for ", $string_utils:nn(object));
+
   $mpm:package_object_upsert_verbs(object, verbs, depth + 1);
+
 endif
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"build_ancestry_object_map" this none this
+
 @program $mpm:build_ancestry_object_map
+
 ":update_object_map(WAIF object_waif, OBJ package_object, MAP package_map, INT depth) => NONE";
 "update the object map of package objects and their counterparts on this MOO";
+
 {object_waif, package_object, package_map, depth} = args;
+
 "okay lets walk the ancestry tree";
+
 i = 0;
+
 ancestors = ancestors(package_object);
+
 temp_package_map = package_map;
+
 while (maphaskey(temp_package_map, "parent_data"))
+
   i = i + 1;
+
   temp_package_map = temp_package_map["parent_data"];
+
   this:update_object_map(object_waif, temp_package_map["object"], ancestors[i], depth);
+
 endwhile
+
 return;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:56:24 2022 PST";
+
 .
+
 
 @verb $mpm:"log_finished_object_map" this none this
+
 @program $mpm:log_finished_object_map
+
 ":log_finished_object_map(WAIF object_map_waif) => NONE";
+
 "log the completed object map for use if we have to roll back";
+
 {object_map_waif} = args;
+
 this:log("finished object map", object_map_waif.data);
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"package_object_upsert_cored_references" this none this
+
 @program $mpm:package_object_upsert_cored_references
+
 ":package_obgject_upsert_cored_references(OBJ object, LIST cored_references, INT depth) => NONE";
+
 {object, cored_references, depth} = args;
+
 this:tell_debug(depth, "Resolving cored references for new object...");
+
 for ref in (cored_references)
+
   if ($object_utils:defines_property($sysobj, ref))
+
     if ($sysobj.(ref) != object)
+
       this:tell_debug(depth, "$sysobj.", ref, " already exists and is different.");
+
       this:tell_debug(depth, "$sysobj.", ref, " is currently set to ", $sysobj.(ref), " [", $string_utils:nn($sysobj.(ref)), "]");
+
       this:tell_debug(depth, "$sysobj.", ref, " new value would be ", object, " [", $string_utils:nn(object), "]");
+
       if ($command_utils:yes_or_no("Update to point to the new object? Take care when updating cored references, as they PROBABLY exist on your moo for a reason. If you are replacing an entire utility object it is probably OK to update its cored reference, but if the cored reference you are updating is for a dependency of the package you are installing, BEWARE: we are only installing the verbs USED BY THE PACKAGE. This means if you decided to create a new instance of String Utilities as part of this package, only a few verbs are likely being installed. You should NOT update your cored reference, or you'll be getting tons of tracebacks. Instead, choose NOT to update it, and then update the code from this package that is referencing the cored reference (IE: $widget_utils) to point to the NEW OBJECT you may have created. Remember that failing to do so when needed could result in a broken package."))
         this:tell_debug(depth, "Updated cored ref ", ref, " to point to ", object);
+
         this:log("updated cored ref", {ref, {"old value", $sysobj.(ref)}, {"new value", object}});
+
         $sysobj.(ref) = object;
+
       else
+
         this:tell_debug(depth, "Did not update cored ref ", ref, " to ", object);
+
       endif
+
     else
+
       this:tell_debug(depth, "$sysobj.", ref, " exists and points to the correct object.");
+
     endif
+
   else
+
     this:tell_debug(depth, "$sysobj.", ref, " does not exist, creating it and setting to ", ref, " -> ", object, " +r");
+
     info = {player, "r"};
+
     this:log_property_add($sysobj, ref, object, info);
+
     add_property($sysobj, ref, object, {player, "r"});
+
   endif
+
 endfor
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"package_object_upsert_properties" this none this
+
 @program $mpm:package_object_upsert_properties
+
 ":package_object_upsert_properties(OBJ object, MAP properties, INT depth) => NONE";
+
 "add or update properties on an object";
+
 {object, properties, depth} = args;
+
 for propname in (properties["property_names"])
+
   if ($object_utils:has_property(object, propname))
+
     if (object.(propname) == properties["property_data"][propname]["value"])
+
       this:tell_debug(depth, "Object ", object, " already defines property `", propname, "` and it is the same.");
+
     else
+
       this:tell_debug(depth, "Object ", object, " already defines property `", propname, "` and it is different.");
+
       this:tell_debug(depth, "Current Property Data: ", toliteral(object.(propname)));
+
       this:tell_debug(depth, "New Property Data: ", toliteral(properties["property_data"][propname]["value"]));
+
       {temp_owner, temp_perms} = property_info(object, propname);
+
       if (!$command_utils:yes_or_no("Update this property?"))
+
         this:tell_debug(depth, "Property not updated. Continuing...");
+
       else
+
         this:log_property_update(object, propname, object.(propname), properties["property_data"][propname]["value"]);
+
         object.(propname) = properties["property_data"][propname]["value"];
+
         this:tell_debug(depth, "Property value updated.");
+
       endif
+
       if (temp_perms != properties["property_data"][propname]["info"][2])
+
         this:tell_debug(depth, object, ".", propname, " has permissions ", temp_perms, " but package is ", properties["property_data"][propname]["info"][2], ".");
+
         if ($command_utils:yes_or_no("Update permissions?"))
+
           this:log_property_permission_change(object, propname, temp_perms, properties["property_data"][propname]["info"][2]);
+
           this:tell_debug(depth, object, ".", propname, " permissions updated from ", temp_perms, " to ", properties["property_data"][propname]["info"][2]);
+
           set_property_info(object, propname, {temp_owner, properties["property_data"][propname]["info"][2]});
+
         endif
+
       endif
+
       "TODO: check property permissions for updates as well";
+
     endif
+
   else
+
     this:tell_debug(depth, "Property ", object, ".`", propname, "` does not exist. Adding...");
+
     add_property(object, propname, properties["property_data"][propname]["value"], {player, properties["property_data"][propname]["info"][2]});
+
     this:log_property_add(object, propname, properties["property_data"][propname]["value"], properties["property_data"][propname]["info"][2]);
+
   endif
+
 endfor
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
+
 .
+
 
 @verb $mpm:"package_object_upsert_verbs" this none this
+
 @program $mpm:package_object_upsert_verbs
+
 ":package_object_upsert_verbs(OBJ object, MAP verbs, INT depth) => NONE";
+
 "add or update an objects verbs";
+
 {object, verbs, depth} = args;
+
 for verbname in (verbs["verb_names"])
+
   "we can't program/check verbs with two names by giving both";
+
   temp_verb_name = explode(verbname)[1];
+
   "we can't have *'s in the verb name";
+
   temp_verb_name = explode(temp_verb_name, "*")[1];
+
   "we want to check that the verb is defined on the object itself, and that it isn't just defined on a parent";
+
   new_verb_code = verbs["verb_data"][verbname]["code"];
+
   new_verb_args = verbs["verb_data"][verbname]["args"];
+
   if ((where_verb = $object_utils:has_verb(object, temp_verb_name)) && (object in where_verb))
+
     if (verb_code(object, temp_verb_name) == new_verb_code)
+
       this:tell_debug(depth, "Object ", object, " already defines verb `", verbname, "` and it is the same.");
+
     else
+
       this:tell_debug(depth, "Object ", object, " already defines verbname `", verbname, "` and it is different.");
+
       this:tell_debug(depth, "Displaying verb diff:");
+
       $diff_utils:diff_display(tostr(verbname, " (current)"), verb_code(object, temp_verb_name), tostr(verbname, " (new)"), new_verb_code);
+
       if (!$command_utils:yes_or_no("Update this verb?"))
+
         this:tell_debug(depth, "Verb not updated. Continuing...");
+
       else
+
         old_verb_code = verb_code(object, temp_verb_name);
+
         set_verb_code(object, temp_verb_name, new_verb_code);
+
         this:log_verb_update_code(object, temp_verb_name, old_verb_code, new_verb_code);
+
         this:tell_debug(depth, object, ":", temp_verb_name, " verb code updated.");
+
       endif
+
       "TODO: check property permissions for updates as well";
+
     endif
+
     if (verb_args(object, temp_verb_name) == new_verb_args)
+
       this:tell_debug(depth, object, ":", temp_verb_name, " verb args are the same.");
+
     else
+
       this:tell_debug(depth, object, ":", temp_verb_name, " Current Verb Args: ", toliteral(verb_args(object, temp_verb_name)));
+
       this:tell_debug(depth, object, ":", " New Verb Args: ", toliteral(new_verb_args));
+
       if (!$command_utils:yes_or_no("Update verb args?"))
+
         this:tell_debug(depth, object, ":", temp_verb_name, " verb args not updated.");
+
       else
+
         old_verb_args = verb_args(object, temp_verb_name);
+
         set_verb_args(object, new_verb_args);
+
         this:log_verb_update_args(object, temp_verb_name, old_verb_args, new_verb_args);
+
         this:tell_debug(depth, object, ":", temp_verb_name, " verb args updated.");
+
       endif
+
     endif
+
   else
+
     this:tell_debug(depth, "Verb `", verbname, "` does not exist. Adding...");
+
     add_verb(object, {player, @verbs["verb_data"][verbname]["info"][2..$]}, new_verb_args);
+
     this:log_verb_add(object, verbname, player, verbs["verb_data"][verbname]["info"][2], new_verb_args);
+
     this:tell_debug(depth, object, ":", verbname, " verb added. Setting code...");
+
     set_verb_code(object, temp_verb_name, new_verb_code);
+
     this:log_verb_update_code(object, verbname, {}, new_verb_code);
+
     this:tell_debug(depth, object, ":", verbname, " verb code set.");
+
   endif
+
 endfor
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 13:04:09 2022 PST";
+
 .
+
 
 @verb $mpm:"package_update_ancestors" this none this
+
 @program $mpm:package_update_ancestors
+
 ":package_update_ancestors(OBJ object, MAP package_map, WAIF object_waif, INT depth) => NONE";
+
 "update the ancestor tree's cored/props/verbs";
+
 "NOTE: we can't do this recursively because there are two different heirarchies, the parent_data and the object_data";
+
 "so we have two different verbs that call package_update_object with their data";
+
 {object, package_map, object_waif, depth} = args;
+
 if (!maphaskey(package_map, "parent_data"))
+
   this:tell_debug(depth, "No ancestor data to update for ", $string_utils:nn(object));
+
   return;
+
 endif
+
 this:tell_debug(depth, "Updating cored/props/verbs for ancestors of ", $string_utils:nn(object));
+
 temp_package_map = package_map;
+
 "TODO: confirm that we want to be skipping the current object as it means we've already";
+
 "done the work of creating the props/verbs/etc on it";
+
 temp_depth = depth;
+
 while (maphaskey(temp_package_map, "parent_data"))
+
   temp_depth = temp_depth + 1;
+
   $mpm:package_update_object(temp_package_map["parent_data"], object_waif, temp_depth);
+
   temp_package_map = temp_package_map["parent_data"];
+
 endwhile
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:07 2022 PST";
+
 .
+
 
 @verb $mpm:"find_object" this none this
+
 @program $mpm:find_object
-":find_object(MAP package_map, WAIF object_waif, INT depth) => OBJ";
+
+":find_object(MAP package_map, WAIF object_waif, MAP options, INT depth) => OBJ";
+
 "this verb attempts to find this MOO's version of an object that was serailzied in the package";
-{package_map, object_waif, depth} = args;
+
+{package_map, object_waif, options, depth} = args;
+
 package_object = package_map["object"];
+
 package_object_name = package_map["name"];
+
 if (maphaskey(object_waif.data, package_map["object"]))
+
   "we already have a matching object in our object map, so we'll skip all this and use that";
+
   return object_waif.data[package_object];
+
 endif
+
+"now we check if we are targetting the user installing the package";
+
+"we can do this here because self targeted packages cannot have dependencies";
+
+"if that ever changes we will need to refactor this";
+
+if (maphaskey(options, "package_target_self") && options["package_target_self"])
+
+  this:tell_debug(depth, "This package is `target-self` meaning it will install its verbs and props on your object `", player, "`. Please take special care in accepting any prop or verb changes that might create issues!");
+
+  if (!$command_utils:yes_or_no("Continue?"))
+
+    raise(E_ARGS, "user opted to abort package install");
+
+  endif
+
+  return player;
+
+endif
+
 if ((!$mpm:is_mpm_update(package_object, package_object_name)) && (!$mpm:is_matching_object(package_object, package_object_name)))
+
   this:tell_debug(depth, "Object# mismatch, object may exist on this MOO with a different object number. Checking corified references...");
+
   valid_references = $mpm:find_object_by_cored_reference(package_map["corified_references"], depth);
+
   if (valid_references)
+
     this:tell_debug(depth, "Found valid cored reference(s). Checking to see if it points to the same object (checking .name)");
+
     temp_package_object = $nothing;
+
     for temp_ref in (valid_references)
+
       this:tell_debug(depth, "Checking if ", $string_utils:nn(temp_ref), " matches ", package_map["name"]);
+
       if ($mpm:is_matching_object(temp_ref, package_object_name))
+
         this:tell_debug(depth, "Found an object that matches our package via corified reference: ", $string_utils:nn(temp_ref));
+
         if ($command_utils:yes_or_no("Use this object?"))
+
           temp_package_object = temp_ref;
+
           break;
+
         endif
+
       endif
+
     endfor
+
     if ($recycler:valid(temp_package_object))
+
       package_object = temp_package_object;
+
     else
+
       this:tell_debug(depth, "Unable to find a direct match.");
+
       package_object = $nothing;
+
     endif
+
   else
+
     this:tell_debug(depth, "No matching corified references found. Object may not exist on this MOO.");
     if (!$command_utils:yes_or_no("Attempt creation of a new object for this object from the parent(s)?"))
+
       this:tell_debug(depth, "Aborted package creation. No changes were made.");
       raise(E_NONE, "Package creation aborted.");
+
     endif
+
     package_object = $nothing;
+
   endif
+
 else
+
   this:tell_debug(depth, "Found a matching package object to update: ", $string_utils:nn(package_object));
+
   if ($command_utils:yes_or_no("You may update the existing object (YES), or create a new object from the parent (NO)"))
+
     this:tell_debug(depth, "Attempting update to existing object...");
+
   else
+
     this:tell_debug(depth, "Looking for a parent object to create a child of...");
+
     package_object = $nothing;
+
   endif
+
 endif
+
 return package_object;
-"Last modified by Fengshui (#22664) on Tue Jan 18 18:57:35 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 22:12:35 2022 PST";
+
 .
+
 
 @verb $mpm:"package_recreate_objects_from_ancestor" this none this
+
 @program $mpm:package_recreate_objects_from_ancestor
+
 ":package_recreate_objects_from_ancestor(MAP package_map, WAIF object_waif, INT use_closest_ancestor, INT depth) => OBJ";
+
 {package_map, object_waif, use_closest_ancestor, depth} = args;
+
 package_object = $nothing;
+
 this:tell_debug(depth, "We don't have this object on the MOO already or we decided to create a new instance.");
+
 this:tell_debug(depth, "Checking package ancestry heirarchy against current object heirarchy to find best match parent...");
+
 "display the full ancestor heirarchy";
+
 ancestor_data = $mpm:slice_ancestor_name_number_aliases_and_cored(package_map, depth);
+
 this:tell_debug(depth, "Package Ancestor Heirarchy:");
+
 temp_depth = depth;
+
 for data in (ancestor_data)
+
   temp_depth = temp_depth + 1;
+
   this:tell_debug(temp_depth, data[1], " -> ", data[2]);
+
 endfor
+
 this:tell_debug(depth, "Scanning for closest valid ancestors on this MOO...");
+
 closest_ancestor = $mpm:find_closest_existing_ancestor(package_map, depth);
 this:tell_debug(depth, "Closest ancestor found is ancestor '", closest_ancestor[1], "' -> ", $string_utils:nn(closest_ancestor[2]));
+
 if ($command_utils:yes_or_no(tostr("Do you want to use this closest ancestor and create the descendent tree from the package (YES) or provide your own parent object (must be this MOOs instance of ", ancestor_data[1][1], " -> ", ancestor_data[1][2], ") to attempt to use (NO)?")))
+
   parent = closest_ancestor[2];
+
   use_closest_ancestor = closest_ancestor[1];
+
 else
+
   if ($recycler:valid(temp_parent = toobj($command_utils:read("Parent obj#:"))))
+
     this:tell_debug(depth, "Using parent ", $string_utils:nn(temp_parent));
+
     parent = temp_parent;
+
     if (!$mpm:does_ancestry_match(parent, package_map["parent_data"], depth))
+
       "if ancestry doesn't match we can attempt to rewire the mapping of objects";
+
       $mpm:package_rewire_ancestors(package_object, package_map, object_waif, depth);
+
     endif
+
   else
+
     this:tell_debug(depth, "Invalid parent. Aborted package creation. No changes were made.");
+
     raise(E_NONE, "Invalid parent.");
+
   endif
+
 endif
+
 if ((!$recycler:valid(parent)) && (!$command_utils:yes_or_no(tostr("Create the package from parent ", $string_utils:nn(parent), "?"))))
+
   this:tell_debug(depth, "Aborted package creation. No changes were made.");
+
   raise(E_NONE, "Aborted package creation.");
+
 endif
+
 "if this is not 0 then we need to do some work to create the parents";
+
 if (use_closest_ancestor)
+
   parent = $mpm:package_create_ancestors(parent, use_closest_ancestor, package_map, depth);
+
 endif
+
 this:tell_debug(depth, "About to create origin object from parent: ", parent);
+
 package_object = this:package_create_object(parent, package_map["name"], package_map["aliases"], package_map["corified_references"], depth, package_map["properties"], package_map["verbs"]);
+
 return package_object;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:53:22 2022 PST";
+
 .
+
 
 @verb $mpm:"update_object_map" this none this
+
 @program $mpm:update_object_map
+
 ":update_object_map(WAIF object_waif, OBJ packaged_obj, OBJ this_moo_object, INT depth) => NONE";
+
 {object_waif, packaged_object, this_moo_object, depth} = args;
+
 if (maphaskey(object_waif.data, packaged_object))
+
   "this key already exists in the map";
+
   if (object_waif.data[packaged_object] != this_moo_object)
+
     "we are trying to CHANGE a mapping, this shouldn't happen";
+
     raise(E_NONE, tostr("object_waif already has a key for ", packaged_object, " and we are trying to assign it to something different: ", this_moo_object));
+
   endif
+
   "no need to do anything since we already have this object in the map";
+
   return;
+
 endif
+
 object_waif.data[packaged_object] = this_moo_object;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
+
 .
 
+
 @verb $mpm:"package_rewire_ancestors" this none this
+
 @program $mpm:package_rewire_ancestors
+
 ":package_rewire_ancestors(OBJ package_object, MAP package_map, WAIF object_waif, INT depth) => NONE";
 "this verb will attempt to let the user 'rewire' the ancestors such that if";
 "a moo has a similar heirarchy but not exactly the same, the user can specify";
+
 "a mapping from the package objects needed to the MOO objects that exist on";
+
 "this MOO. For example, if the MOO importing the package has inserted a parent";
+
 "into the ancestor heirachy, they could use that parent or skip that parent";
+
 "this is not ideal and can result in wonkiness. it should be done with care";
+
 "TODO: can we make this detect issues that might be caused by pass, etc?";
+
 {package_object, package_map, object_waif, depth} = args;
+
 ancestors = ancestors(package_object);
+
 package_ancestors = $mpm:slice_ancestor_name_number_aliases_and_cored(package_map, depth + 1);
+
 this:tell_debug(depth, "Your ancestor heirarchy is different for ", $string_utils:nn(package_object));
+
 this:tell_debug(depth, "Checking for previous rewiring of all ancestors...");
+
 ancestors_needing_rewiring = {};
+
 for data in (package_ancestors)
+
   if (maphaskey(object_waif.data, data[1]))
+
     this:tell_debug(depth, data[2], " (", data[1], ") already rewired to ", $string_utils:nn(object_waif.data[data[1]]), ". Continuing.");
+
   endif
+
   ancestors_needing_rewiring = {@ancestors_needing_rewiring, data};
+
 endfor
+
 if (!ancestors_needing_rewiring)
+
   this:tell_debug(depth, "All ancestors of ", $string_utils:nn(package_object), " already rewired. Moving on.");
+
   return;
+
 else
+
   this:tell_debug(depth, length(ancestors_needing_rewiring), " in need of rewiring.");
+
 endif
+
 this:tell_debug(depth, "You can attempt to rewire the ancestor mapping to allow the installation to continue. This can have some negative side effects if not handled with care. Selecting NO below will abort package installation.");
+
 if (!$command_utils:yes_or_no("Do you want to select mappings from the package objects to the objects on your MOO?"))
+
   this:tell_debug(depth, "Aborting package installation.");
+
   raise(E_NONE, "aborted package installation due to ancestor mapping mismatch.");
+
 endif
+
 this:tell_debug(depth, "Attempting to rewire ancestor mapping...");
+
 if (length(ancestors) < length(package_ancestors))
+
   this:tell_debug(depth, "The package object has ", length(package_ancestors), " and the object on this MOO has ", length(ancestors), ".");
+
   this:tell_debug(depth, "We cannot remap to ancestors when there are fewer. This can be fixed manaully by bringing the ancestors on this MOO inline with what is in the package, by inserting missing ancestors in the parentage tree and @chparenting.");
+
   this:tell_debug(depth, "The heirarchy the package expects (obj#s shown are the ones stored in the package and may not match your MOO) is:");
+
   temp_depth = depth + 1;
+
   for data in (package_ancestors)
+
     this:tell_debug(temp_depth, data[2], "(", data[1], ")");
+
     temp_depth = temp_depth + 1;
+
   endfor
+
   this:tell_debug(depth, "The heirarchy on your MOO is: ");
+
   temp_depth = depth + 1;
+
   for ancestor in (ancestors)
+
     this:tell_debug(depth, $string_utils:nn(ancestor));
+
     temp_depth = temp_depth + 1;
+
   endfor
+
   raise(E_NONE, "package rewire error");
+
 endif
+
 this:tell_debug(depth, "The heirarchy the package expects (obj#s shown are the ones stored in the package and may not match your MOO) is:");
+
 this:tell_debug(depth, package_map["name"], "(", package_map["object"], ")");
+
 temp_depth = depth + 1;
+
 for data in (package_ancestors)
+
   this:tell_debug(temp_depth, data[2], "(", data[1], ")");
+
   temp_depth = temp_depth + 1;
+
 endfor
+
 this:tell_debug(depth, "The heirarchy of the object on your MOO is: ");
+
 this:tell_debug(depth, $string_utils:nn(package_object));
+
 temp_depth = depth + 1;
+
 for ancestor in (ancestors)
+
   this:tell_debug(temp_depth, $string_utils:nn(ancestor));
+
   temp_depth = temp_depth + 1;
+
 endfor
+
 this:tell_debug(depth, "");
+
 this:tell_debug(depth, "You will now be prompted to select a mapping for each ancestor in the package that has not already been rewired. The objects you enter must all be ancestors of ", $string_utils:nn(package_object));
+
 temp_depth = depth + 1;
+
 for data in (ancestors_needing_rewiring)
+
   this:tell_debug(temp_depth, "Enter your moo's instance of: ", data[2], "(", data[1], ")");
+
   result = toobj($command_utils:read("Enter an obj# (IE: #1234)"));
+
   if ((!$recycler:valid(result)) || (!(result in ancestors)))
+
     this:tell_debug(temp_depth, "Invalid object or not present in ancestors of ", package_object, ". You get one more try before the install aborts.");
+
     result = toobj($command_utils:read("Enter an obj# (IE: #1234)"));
+
     if ((!$recycler:valid(result)) || (!(result in ancestors)))
+
       raise(E_ARGS, "Invalid object or not present in ancestors. Package install aborted.");
+
     endif
+
   endif
+
   this:update_object_map(object_waif, data[1], result, depth);
+
   this:tell_debug(depth, "Updated object mapping of ", data[1], " to ", result);
+
   temp_depth = temp_depth + 1;
+
 endfor
+
 this:tell_debug(depth, "Finished rewiring ancestry for ", package_object);
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:57:33 2022 PST";
+
+"Last modified by Fengshui (#22664) on Tue Jan 18 21:31:31 2022 PST";
+
 .
+
 
 @verb $mpm:"find_existing_package_data" this none this
+
 @program $mpm:find_existing_package_data
+
 ":find_exisitng_package_data(OBJ object) => MAP";
+
 "this verb will check the provided object for existing package data that was";
+
 "previously created by the package manager for this object";
+
 {object} = args;
+
 if (maphaskey(this.created_packages, object))
+
   return this.created_packages[object];
+
 else
+
   return [];
+
 endif
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
+
 .
+
 
 @verb $mpm:"dynamically_select_verbs_for_package" this none this
+
 @program $mpm:dynamically_select_verbs_for_package
+
 ":dynamically_select_verbs_for_package(OBJ object) => LIST";
+
 "allow the user to select the verbs they want to include from an object";
+
 {object} = args;
+
 verbs = verbs(object);
+
 included_verbs = {};
+
 player:tell("Displaying verbs for: ", $string_utils:nn(object));
+
 while (verbs)
+
   i = 0;
+
   for verb_name in (verbs)
+
     i = i + 1;
+
     player:tell(i, ": ", verb_name);
+
   endfor
+
   result = $command_utils:read("enter NUMER of verb to include or hit ENTER to be DONE.");
+
   if (!result)
+
     break;
   endif
+
   index = toint(result);
+
   included_verbs = {@included_verbs, verbs[index]};
   verbs = listdelete(verbs, index);
+
 endwhile
+
 return included_verbs;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
+
 .
+
 
 @verb $mpm:"log_installed_package" this none this
+
 @program $mpm:log_installed_package
+
 ":log_installed_package(OBJ origin_object, MAP package_map) => NONE";
+
 "store that we installed this package";
+
 {origin_object, package_map} = args;
+
 existing_data = `this.installed_packages ! E_PROPNF => []';
+
 new_data = existing_data;
+
 data_to_store = ["package_name" -> package_map["package_name"], "package_version" -> package_map["package_version"], "package_hash" -> package_map["package_hash"], "package_description" -> package_map["package_description"], "package_installed_at" -> time(), "package_installed_by" -> player];
+
 if (maphaskey(new_data, origin_object))
+
   "we've installed a package on this origin object previously";
+
   new_data[origin_object] = {@new_data[origin_object], data_to_store};
+
 else
+
   new_data[origin_object] = {data_to_store};
+
 endif
+
 if ($object_utils:defines_property(this, "installed_packages"))
+
   this.installed_packages = new_data;
+
 else
+
   add_property(this, "installed_packages", new_data, {player, "r"});
+
 endif
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
+
 .
+
 
 @verb $mpm:"log_created_package" this none this
+
 @program $mpm:log_created_package
+
 ":log_installed_package(OBJ origin_object, MAP package_map) => NONE";
+
 "store that we installed this package";
+
 {origin_object, package_map} = args;
+
 existing_data = `this.created_packages ! E_PROPNF => []';
+
 new_data = existing_data;
+
 data_to_store = ["package_name" -> package_map["package_name"], "package_version" -> package_map["package_version"], "package_hash" -> package_map["package_hash"], "package_description" -> package_map["package_description"], "package_created_at" -> package_map["package_created_at"], "package_created_by" -> package_map["package_created_by"], "package_url" -> package_map["package_url"], "package_changelog" -> package_map["package_changelog"], "package_post_install_note" -> package_map["package_post_install_note"], "mpm_version" -> package_map["mpm_version"]];
+
 if (maphaskey(new_data, origin_object))
+
   "we've installed a package on this origin object previously";
+
   new_data[origin_object] = {@new_data[origin_object], data_to_store};
+
 else
+
   new_data[origin_object] = {data_to_store};
+
 endif
+
 if ($object_utils:defines_property(this, "created_packages"))
+
   this.created_packages = new_data;
+
 else
+
   add_property(this, "created_packages", new_data, {player, "r"});
+
 endif
+
 "Last modified by Fengshui (#22664) on Tue Jan 18 17:14:13 2022 PST";
+
 .
+
 
 @verb $mpm:"create_package_meta" this none this
+
 @program $mpm:create_package_meta
+
 ":create_package_meta(OBJ package_object, ?INT depth = 0) => MAP";
+
 "create the initial package information";
+
 {package_object, ?depth = 0} = args;
+
 this:tell_debug(depth, "Creating package for: ", $string_utils:nn(package_object));
+
 this:tell_debug(depth, "");
+
 this:tell_debug(depth, "You will be prompted to provide the following information: ");
+
 this:tell_debug(depth, "Package Name, Package Version, Package Description, (for updates) Package Changelog, (optional) Post Install Note, (optional) URL where package will be hosted.");
+
 this:tell_debug(depth, "");
+
 existing_package_data = $mpm:find_existing_package_data(package_object);
+
 created_package_count = length(existing_package_data);
+
 this:tell_debug(depth, "There are ", created_package_count, " packages previously created from this origin object.");
+
 new_package_data = [];
+
 updating_package = false;
+
 if (existing_package_data)
+
   i = 0;
+
   this:tell_debug(depth, $string_utils:left("#", 4), $string_utils:left("PACKAGE NAME @ VERSION", 50), $string_utils:left("CREATED DATE", 30), $string_utils:left("CREATED BY", 20));
+
   for package_data in (existing_package_data)
+
     i = i + 1;
+
     this:tell_debug(depth, $string_utils:left(i, 4), $string_utils:left(tostr(package_data["package_name"], " @ ", package_data["package_version"]), 50), $string_utils:left(ctime(package_data["package_created_at"]), 30), $string_utils:left(package_data["package_created_by"], 20));
+
   endfor
+
   if ($command_utils:yes_or_no("Is your package a new version of one of the packages above?"))
+
     index = $command_utils:read("Enter the # that this package is a new version of.");
+
     if ((((!index) || (!(index = toint(index)))) || (index < 0)) || (index > created_package_count))
+
       this:tell_debug(depth, "You failed at entering a valid package # baka! Aborting.");
+
       raise(E_ARGS, "Invalid package #");
+
     endif
+
     updating_package = true;
+
     new_package_data = existing_package_data[index];
+
     this:tell_debug(depth, "Using existing package data...");
+
   endif
+
 endif
+
 if (maphaskey(new_package_data, "package_name"))
+
   this:tell_debug(depth, "Using Existing Package Name: ", new_package_data["package_name"]);
+
 else
   name = $command_utils:read("Enter name for package:");
+
   if (!name)
     this:tell_debug(depth, "No package name provided. Aborting.");
+
     raise(E_ARGS, "Invalid package name.");
+
   endif
+
   new_package_data["package_name"] = name;
+
 endif
+
+if (!maphaskey(new_package_data, "package_id"))
+
+  "this will create a unique package_id for this package that will carry over in each version";
+
+  new_package_data["package_id"] = string_hash(tostr(name, ftime()), "MD5");
+
+endif
+
 if (maphaskey(new_package_data, "package_version"))
+
   this:tell_debug(depth, "Previous Version Number: ", new_package_data["package_version"]);
+
 endif
+
 version_number = tofloat($command_utils:read("Version Number (must be a positive non-zero float ie: 1.0)?"));
+
 if ((!version_number) || (version_number < 0.0))
+
   this:tell_debug(depth, "Invalid version number.");
+
   raise(E_ARGS, "Invalid version number. Need a positive non zero float.");
+
 endif
+
 new_package_data["package_version"] = version_number;
+
 if (maphaskey(new_package_data, "package_description"))
+
   this:tell_debug(depth, "Package Description: ", new_package_data["package_description"]);
+
   if (!$command_utils:yes_or_no("Use existing package description?"))
+
     description = $command_utils:read("Enter description for package:");
+
     if (!description)
+
       this:tell_debug(depth, "No package description provided. Aborting.");
+
       raise(E_ARGS, "Invalid package description.");
+
     endif
+
     new_package_data["package_description"] = description;
+
   endif
+
 else
+
   description = $command_utils:read("Enter description for package:");
+
   if (!description)
+
     this:tell_debug(depth, "No package description provided. Aborting.");
+
     raise(E_ARGS, "Invalid package description.");
+
   endif
+
   new_package_data["package_description"] = description;
+
 endif
+
 if (updating_package)
+
   changelog = $command_utils:read("Enter a brief changelog of what's different in this package update:");
+
   if (!changelog)
+
     this:tell_debug(depth, "No changelog provided. Aborting.");
+
     raise(E_ARGS, "Invalid changelog.");
+
   endif
+
   new_package_data["package_changelog"] = changelog;
+
 else
+
   new_package_data["package_changelog"] = "";
+
 endif
+
+if (maphaskey(new_package_data, "package_post_install_note") && new_package_data["package_post_install_note"])
+
+  player:tell("Previous Post Install Note: ", new_package_data["package_post_install_note"]);
+
+endif
+
 post_install_note = $command_utils:read("(optional) Enter a note that will be displayed after package installation:");
+
 if (!post_install_note)
+
   post_install_note = "";
+
 endif
+
 new_package_data["package_post_install_note"] = post_install_note;
-this:tell_debug(depth, "(optional) Enter the URL where you will be hosting this package. Just hit enter to leave this blank. You can update it later.");
-if (package_url = $command_utils:read("package url?"))
-  new_package_data["package_url"] = package_url;
-else
-  new_package_data["package_url"] = "";
+
+if (maphaskey(new_package_data, "package_url") && new_package_data["package_url"])
+
+  player:tell("Previous Package URL (you should really have a new URL for each version): ", new_package_data["package_url"]);
+
 endif
+
+this:tell_debug(depth, "(optional) Enter the URL where you will be hosting this package. Just hit enter to leave this blank. You can update it later.");
+
+if (package_url = $command_utils:read("package url?"))
+
+  new_package_data["package_url"] = package_url;
+
+else
+
+  new_package_data["package_url"] = "";
+
+endif
+
 new_package_data["package_created_by"] = $string_utils:nn(player);
+
 new_package_data["package_created_at"] = time();
+
 new_package_data["mpm_version"] = this.package_manager_version;
+
 return new_package_data;
-"Last modified by Fengshui (#22664) on Tue Jan 18 17:13:40 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 20:41:05 2022 PST";
+
 .
+
 
 @verb $mpm:"parse_command_arguments" this none this
+
 @program $mpm:parse_command_arguments
 ":parse_command_arguments(STR arguments, ?INT depth = 0) => MAP";
+
 "this will parse the command arguments passed into @make-package and return";
+
 "an options map to use with making the package";
+
 {arguments, ?depth = 0} = args;
+
 options = [];
+
 exploded_args = explode(arguments, " ");
+
 if (exploded_args[1][1] == "#")
+
   if (!$recycler:valid(package_object = toobj(exploded_args[1])))
+
     this:tell_debug(depth, "Invalid object.");
+
     raise(E_ARGS, "invalid object for package");
+
   endif
+
 elseif (exploded_args[1][1] == "$")
+
   if (($object_utils:has_property($sysobj, exploded_args[1][2..$]) && (typeof($sysobj.(exploded_args[1][2..$])) == OBJ)) && $recycler:valid($sysobj.(exploded_args[1][2..$])))
+
     package_object = $sysobj.(exploded_args[1][2..$]);
+
   else
+
     raise(E_ARGS, tostr(exploded_args[1], " is not a valid object or cored reference."));
+
   endif
+
 else
+
   raise(E_ARGS, tostr(exploded_args[1], " is not a valid object or cored references."));
+
 endif
+
 "let's setup some options";
+
 options = ["package_object" -> package_object];
+
 if (match(arguments, "--select-verbs"))
+
   options["select_verbs"] = true;
+
 else
+
   options["select_verbs"] = false;
+
 endif
+
 if (match(arguments, "--fully-serialize-ancestry"))
+
   options["fully_serialize_parent"] = true;
+
 else
+
   "we won't serialize the entire parent, only what we need off of it";
+
   options["fully_serialize_parent"] = false;
+
 endif
+
 if (match(arguments, "--serialize-#1"))
+
   "if this is set to on, we will fully serialize #1 instead of just holding a reference to it as a parent";
+
   options["serialize_#1"] = true;
+
 else
+
   options["serialize_#1"] = false;
+
 endif
+
 if (match(arguments, "--dry-run"))
+
   options["dry_run"] = true;
+
 else
+
   options["dry_run"] = false;
+
 endif
+
+"ignore all non cored properties while serializing";
+
+if (match(arguments, "--ignore-all-non-cored-props"))
+
+  options["ignore_all_non_cored_props"] = true;
+
+else
+
+  options["ignore_all_non_cored_props"] = false;
+
+endif
+
+"ignore all cored properties while serializing";
+
+if (match(arguments, "--ignore-all-cored-props"))
+
+  options["ignore_all_cored_props"] = true;
+
+else
+
+  options["ignore_all_cored_props"] = false;
+
+endif
+
+"allow dynamic verb calls to be serialized instead of throwing an error";
+
+if (match(arguments, "--allow-dynamic-verb-calls"))
+
+  options["allow_dynamic_verb_calls"] = true;
+
+else
+
+  options["allow_dynamic_verb_calls"] = false;
+
+endif
+
+"allow dynamic prop calls to be serialized instead of throwing an error";
+
+if (match(arguments, "--allow-dynamic-prop-calls"))
+
+  options["allow_dynamic_prop_calls"] = true;
+
+else
+
+  options["allow_dynamic_prop_calls"] = false;
+
+endif
+
+"will avoid longer serializing ancestry";
+
+if (match(arguments, "--dont-serialize-ancestry"))
+
+  options["dont_serialize_ancestry"] = true;
+
+else
+
+  options["dont_serialize_ancestry"] = false;
+
+endif
+
+"dont serialize an objects cored aliases";
+
+if (match(arguments, "--dont-serialize-cored-aliases"))
+
+  options["dont_serialize_cored_aliases"] = true;
+
+else
+
+  options["dont_serialize_cored_aliases"] = false;
+
+endif
+
+"target self makes it so the package is installed on the parent";
+
+if (match(arguments, "--target-self"))
+
+  this:tell_debug(depth, "You have elected to have this package install the verbs/props onto whomever installs the package. Making a package of this nature should be carefully considered. Generally speaking, you will want to exclude certain (if not all) properties from being serialized. For example, you don't want to serialize the .name property, because then anyone who installs this package will have their .name overwritten. Make sure you carefully examine the properties that are packaged and exclude ones you do not need. Or, be very specific about the verbs and props that are being serialized. See https://github.com/sevenecks/moo-package-manager for more information on the options available to you in this endeavor.");
+
+  if (!$command_utils:yes_or_no("Continue?"))
+
+    raise(E_ARGS, "Failed to want to continue.");
+
+  endif
+
+  options["target_self"] = true;
+
+else
+
+  options["target_self"] = false;
+
+endif
+
 if (match(arguments, "--only-origin-object"))
+
   "when set this will make it so we only serialize the origin object (and parents) and not the dependency map";
+
   options["only_origin_object"] = true;
+
 else
+
   options["only_origin_object"] = false;
+
 endif
+
 if (result = match(arguments, "--verb-list="))
+
   "this determines verbs we want to serialize for this package, if provided";
+
   temp = arguments[result[2] + 1..$];
+
   exploded = explode(temp, " ");
+
   verbs_provided = exploded[1];
+
   verb_names = explode(verbs_provided, ",");
+
   options["verb_list_from_command_args"] = verb_names;
+
 endif
+
+if (result = match(arguments, "--post-install-verb="))
+
+  "this determines verbs we want to serialize for this package, if provided";
+
+  verbname = arguments[result[2] + 1..$];
+
+  if (!$object_utils:defines_verb(package_object, verbname))
+
+    raise(E_ARGS, tostr("post install verb provided does not exist on ", package_object));
+
+  endif
+
+  options["post_install_verb"] = verb_name;
+
+else
+
+  options["post_install_verb"] = false;
+
+endif
+
 if (result = match(arguments, "--ignore-prop-list="))
+
   "this determines props we DO NOT want to serialize for this package, if provided";
+
   "these props will be IGNORED when serializing";
+
   "this is useful for when you have props that don't matter for other MOOs";
+
   "you can provide the prop name to ignore all instances of prop or obj#.propname to ignore for a specific object";
+
   temp = arguments[result[2] + 1..$];
+
   exploded = explode(temp, " ");
+
   props_provided = exploded[1];
+
   prop_strings = explode(props_provided, ",");
+
   all_ignore_prop_list = {};
+
   object_prop_ignore_list = [];
+
   for prop_string in (prop_strings)
+
     if (length(prop_explode = explode(prop_string, ".")) == 2)
+
       "we have been provided a prop string in the form of #obj.prop";
+
       {object_string, prop_name} = prop_explode;
+
       if (!$recycler:valid(prop_object = toobj(object_string)))
+
         this:tell_debug(depth, "Invalid object passed via --ignore-prop-list");
+
         raise(E_ARGS, tostr(prop_object, " is not a valid object"));
+
       elseif (!$object_utils:has_property(prop_object, prop_name))
+
         this:tell_debug(depth, prop_object, " does not have a property ", prop_name, " to ignore.");
+
         raise(E_ARGS, tostr(prop_object, " does not have a property ", prop_name, " to ignore"));
+
       endif
+
       if (prop_object == $sysobj)
+
         this:tell_debug(depth, "The argument '", prop_string, " is resolving to $sysobj, this can happen when you typo, are you sure you want to ignore this prop in your package?");
+
         if (!$command_utils:yes_or_no("Ignore?"))
+
           raise(E_ARGS, "bad argument sent to --ignore-prop-list");
+
         endif
+
       endif
+
       if (maphaskey(object_prop_ignore_list, prop_object))
+
         object_prop_ignore_list[prop_object] = {@object_prop_ignore_list[prop_object], prop_name};
+
       else
+
         object_prop_ignore_list[prop_object] = {prop_name};
+
       endif
+
     elseif (length(prop_explode) > 2)
+
       this:tell_debug(depth, "Invalid argument passed to --ignore-prop-list: ", prop_string);
+
       raise(E_ARGS, "invalid argument passed to --ignore-prop-list");
+
     else
+
       all_ignore_prop_list = {@all_ignore_prop_list, prop_string};
+
     endif
+
   endfor
+
   options["all_ignore_prop_list"] = all_ignore_prop_list;
+
   options["object_prop_ignore_list"] = object_prop_ignore_list;
+
 else
+
   options["all_ignore_prop_list"] = {};
+
   options["object_prop_ignore_list"] = [];
+
 endif
+
 if (result = match(arguments, "--reset-prop-value-list="))
+
   "this determines props we want to set reset to empty values (based on type) for this package, if provided";
+
   temp = arguments[result[2] + 1..$];
+
   exploded = explode(temp, " ");
+
   props_provided = exploded[1];
+
   prop_strings = explode(props_provided, ",");
+
   all_reset_prop_list = {};
+
   object_prop_reset_list = [];
+
   for prop_string in (prop_strings)
+
     if (length(prop_explode = explode(prop_string, ".")) == 2)
+
       "we have been provided a prop string in the form of #obj.prop";
+
       {object_string, prop_name} = prop_explode;
+
       if (!$recycler:valid(prop_object = toobj(object_string)))
+
         this:tell_debug(depth, "Invalid object passed via --reset-prop-value-list");
+
         raise(E_ARGS, tostr(prop_object, " is not a valid object"));
+
       elseif (!$object_utils:has_property(prop_object, prop_name))
+
         this:tell_debug(depth, prop_object, " does not have a property ", prop_name, " to ignore.");
+
         raise(E_ARGS, tostr(prop_object, " does not have a property ", prop_name, " to ignore"));
+
       endif
+
       if (prop_object == $sysobj)
+
         this:tell_debug(depth, "The argument '", prop_string, " is resolving to $sysobj, this can happen when you typo, are you sure you want to reset this prop value in your package?");
+
         if (!$command_utils:yes_or_no("Reset?"))
+
           raise(E_ARGS, "bad argument sent to --reset-prop-values");
+
         endif
+
       endif
+
       if (maphaskey(object_prop_reset_list, prop_object))
+
         object_prop_reset_list[prop_object] = {@object_prop_reset_list[prop_object], prop_name};
+
       else
+
         object_prop_reset_list[prop_object] = {prop_name};
+
       endif
+
     else
+
       this:tell_debug(depth, "Invalid argument passed to --reset-prop-value-list: ", prop_string);
+
       raise(E_ARGS, "invalid argument passed to --reset-prop-value-list");
+
     endif
+
   endfor
+
   options["object_prop_reset_list"] = object_prop_reset_list;
+
 else
+
   options["object_prop_reset_list"] = [];
+
 endif
+
+"this sets up our ability to specify ONLY the properties we want to include";
+
+if (result = match(arguments, "--only-include-prop-list="))
+
+  "this determines THE ONLY props we want to serialize for this package";
+
+  "all other props will be IGNORED when serializing";
+
+  "you can provide the prop name to ignore all instances of prop or obj#.propname to ignore for a specific object";
+
+  temp = arguments[result[2] + 1..$];
+
+  exploded = explode(temp, " ");
+
+  props_provided = exploded[1];
+
+  prop_strings = explode(props_provided, ",");
+
+  all_include_prop_list = {};
+
+  object_prop_include_list = [];
+
+  for prop_string in (prop_strings)
+
+    if (length(prop_explode = explode(prop_string, ".")) == 2)
+
+      "we have been provided a prop string in the form of #obj.prop";
+
+      {object_string, prop_name} = prop_explode;
+
+      if (!$recycler:valid(prop_object = toobj(object_string)))
+
+        this:tell_debug(depth, "Invalid object passed via --only-include-prop-list");
+
+        raise(E_ARGS, tostr(prop_object, " is not a valid object"));
+
+      elseif (!$object_utils:has_property(prop_object, prop_name))
+
+        this:tell_debug(depth, prop_object, " does not have a property ", prop_name, " to include.");
+
+        raise(E_ARGS, tostr(prop_object, " does not have a property ", prop_name, " to include"));
+
+      endif
+
+      if (prop_object == $sysobj)
+
+        this:tell_debug(depth, "The argument '", prop_string, " is resolving to $sysobj, this can happen when you typo, are you sure you want to include this prop in your package?");
+
+        if (!$command_utils:yes_or_no("include?"))
+
+          raise(E_ARGS, "bad argument sent to --only-include-prop-list");
+
+        endif
+
+      endif
+
+      if (maphaskey(object_prop_include_list, prop_object))
+
+        object_prop_include_list[prop_object] = {@object_prop_include_list[prop_object], prop_name};
+
+      else
+
+        object_prop_include_list[prop_object] = {prop_name};
+
+      endif
+
+    elseif (length(prop_explode) > 2)
+
+      this:tell_debug(depth, "Invalid argument passed to --only-include-prop-list: ", prop_string);
+
+      raise(E_ARGS, "invalid argument passed to --only-include-prop-list");
+
+    else
+
+      all_include_prop_list = {@all_include_prop_list, prop_string};
+
+    endif
+
+  endfor
+
+  options["all_include_prop_list"] = all_include_prop_list;
+
+  options["object_prop_include_list"] = object_prop_include_list;
+
+else
+
+  options["all_include_prop_list"] = {};
+
+  options["object_prop_include_list"] = [];
+
+endif
+
+"now we need to make sure we're handling args that need to be set together";
+
+if (options["target_self"] && (!options["only_origin_object"]))
+
+  player:tell("You can only use --target-self in conjunction with --only-origin-object. Add that to your arg list and try again.");
+
+  raise(E_ARGS, "--target-self must be used with --only-origin-object");
+
+elseif (options["ignore_all_non_cored_props"] && (options["all_include_prop_list"] || options["object_prop_include_list"]))
+
+  player:tell("You cannot use --ignore-all-non-cored-props and --only-include-prop-list together.");
+
+  raise(E_ARGS, "Cannot use --ignore-all-non-cored-props and --only-include-prop-list together.");
+
+endif
+
 return options;
-"Last modified by Fengshui (#22664) on Tue Jan 18 17:37:37 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 17:35:21 2022 PST";
+
 .
+
 
 @verb $mpm:"confirm_package_creation_options" this none this
+
 @program $mpm:confirm_package_creation_options
+
 ":confirm_package_creation_options(MAP options, LIST verbs, MAP package_map, ?depth = 0) => BOOL";
+
 "display the package creation options and ask user to confirm before creation";
+
 {options, verbs, package_map, ?depth = 0} = args;
+
 this:tell_debug(depth, "Origin Object for Package: ", $string_utils:nn(options["package_object"]));
+
 $mpm:display_package_meta(package_map, depth);
-this:tell_debug(depth, "Fully Serialize Ancestors: ", options["fully_serialize_parent"]);
-this:tell_debug(depth, "Serialize #1: ", options["serialize_#1"]);
+
 this:tell_debug(depth, "Verbs: ", $string_utils:from_list(verbs, ", "));
-this:tell_debug(depth, "Props ignored on all objects: ", $string_utils:from_list(options["all_ignore_prop_list"], ", ") || "none");
+
+if (options["fully_serialize_parent"])
+
+  this:tell_debug(depth, "Fully Serialize Ancestors: ", options["fully_serialize_parent"]);
+
+endif
+
+if (options["serialize_#1"])
+
+  this:tell_debug(depth, "Serialize #1: ", options["serialize_#1"]);
+
+endif
+
 if (options["object_prop_ignore_list"])
+
+  this:tell_debug(depth, "Props ignored on all objects: ", $string_utils:from_list(options["all_ignore_prop_list"], ", ") || "none");
+
+endif
+
+if (options["object_prop_ignore_list"])
+
   this:tell_debug(depth, "Props ignored on specific objects: ");
-else
-  this:tell_debug(depth, "Props ignored on specific objects: none");
+
+  for object in (mapkeys(options["object_prop_ignore_list"]))
+
+    this:tell_debug(depth + 1, object, " -> ", $string_utils:from_list(options["object_prop_ignore_list"][object], ", ") || "none");
+
+  endfor
+
 endif
-for object in (mapkeys(options["object_prop_ignore_list"]))
-  this:tell_debug(depth, object, " -> ", $string_utils:from_list(options["object_prop_ignore_list"][object], ", ") || "none");
-endfor
+
 if (options["object_prop_reset_list"])
+
   this:tell_debug(depth, "Props reset on specific objects: ");
-else
-  this:tell_debug(depth, "Props reset on specific objects: none");
+
+  for object in (mapkeys(options["object_prop_reset_list"]))
+
+    this:tell_debug(depth + 1, object, " -> ", $string_utils:from_list(options["object_prop_reset_list"][object], ", ") || "none");
+
+  endfor
+
 endif
-for object in (mapkeys(options["object_prop_reset_list"]))
-  this:tell_debug(depth, object, " -> ", $string_utils:from_list(options["object_prop_reset_list"][object], ", ") || "none");
-endfor
-this:tell_debug(depth, "Only Origin Object: ", options["only_origin_object"]);
+
+if (options["all_include_prop_list"])
+
+  this:tell_debug(depth, "Props added on all objects: ", $string_utils:from_list(options["all_include_prop_list"], ", ") || "none");
+
+endif
+
+if (options["object_prop_include_list"])
+
+  this:tell_debug(depth, "Props added on specific objects: ");
+
+  for object in (mapkeys(options["object_prop_include_list"]))
+
+    this:tell_debug(depth + 1, object, " -> ", $string_utils:from_list(options["object_prop_include_list"][object], ", ") || "none");
+
+  endfor
+
+endif
+
+if (options["only_origin_object"])
+
+  this:tell_debug(depth, "Only Origin Object: ", options["only_origin_object"]);
+
+endif
+
+if (options["ignore_all_cored_props"])
+
+  this:tell_debug(depth, "Ignore All Cored Props: ", options["ignore_all_cored_props"]);
+
+endif
+
+if (options["ignore_all_non_cored_props"])
+
+  this:tell_debug(depth, "Ignore All Non-Cored Props: ", options["ignore_all_non_cored_props"]);
+
+endif
+
+if (options["target_self"])
+
+  this:tell_debug(depth, "Target Self: ", options["target_self"]);
+
+endif
+
+if (options["dont_serialize_cored_aliases"])
+
+  this:tell_debug(depth, "Don't Serialize Cored Aliases: ", options["dont_serialize_cored_aliases"]);
+
+endif
+
+if (options["allow_dynamic_verb_calls"])
+
+  this:tell_debug(depth, "Allow Dynamic Verb Calls: ", options["allow_dynamic_verb_calls"]);
+
+endif
+
+if (options["allow_dynamic_prop_calls"])
+
+  this:tell_debug(depth, "Allow Dynamic Prop Calls: ", options["allow_dynamic_prop_calls"]);
+
+endif
+
+if (options["dont_serialize_ancestry"])
+
+  this:tell_debug(depth, "Don't Serialize Ancestry: ", options["dont_serialize_ancestry"]);
+
+endif
+
+if (options["post_install_verb"])
+
+  this:tell_debug(depth, "Post Install Verb:", options["post_install_verb"]);
+
+endif
+
 this:tell_debug(depth, "Dry Run: ", options["dry_run"]);
+
 return $command_utils:yes_or_no("Create package with these options?");
-"Last modified by Fengshui (#22664) on Tue Jan 18 18:00:56 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 19:52:03 2022 PST";
+
 .
+
 
 @verb $mpm:"is_package_already_installed" this none this
+
 @program $mpm:is_package_already_installed
-":is_package_already_installed(STR hash) => LIST";
-"checks to see if a package is already installed by looking for the hash in";
+
+":is_package_already_installed(STR id) => LIST";
+
+"checks to see if a package is already installed by looking for the id hash in";
+
 ".installed_packages. If found, it returns a list of the various instances it";
+
 "was installed";
-{hash} = args;
+
+{id} = args;
+
 installed_packages = {};
+
 for object in (mapkeys(this.installed_packages))
+
   for package in (this.installed_packages[object])
-    if (package["package_hash"] == hash)
+
+    "have to try/catch this because we didn't always have id";
+
+    if (`package["package_id"] == id ! E_RANGE => 0')
+
       installed_packages = {@installed_packages, package};
+
     endif
+
   endfor
+
 endfor
+
 return installed_packages;
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:09 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 19:26:19 2022 PST";
+
 .
+
 
 @verb $mpm:"display_install_history" this none this
+
 @program $mpm:display_install_history
+
 ":display_install_history(LIST packages, ?INT depth = 0) => NONE";
+
 {packages, ?depth = 0} = args;
+
 this:tell_debug(depth, "Package Install History:");
+
 this:tell_debug(depth, $string_utils:left("PACKAGE NAME @ VERSION", 50), $string_utils:left("INSTALL DATE", 30), $string_utils:left("INSTALLED BY", 20));
+
 for package_data in (packages)
+
   this:tell_debug(depth, $string_utils:left(tostr(package_data["package_name"], " @ ", package_data["package_version"]), 50), $string_utils:left(ctime(package_data["package_installed_at"]), 30), $string_utils:left(package_data["package_installed_by"], 20));
+
 endfor
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 12:27:09 2022 PST";
+
 .
+
 
 @verb $mpm:"display_package_meta" this none this
+
 @program $mpm:display_package_meta
+
 ":display_package_meta(MAP package_map, INT depth) => NONE";
+
 "display package meta data to the user";
+
 {package_map, depth} = args;
+
 this:tell_debug(depth, "Package Name: ", package_map["package_name"]);
+
+this:tell_debug(depth, "Package Id: ", `package_map["package_id"] ! E_RANGE => "NONE"');
+
 this:tell_debug(depth, "Package Version: ", package_map["package_version"]);
+
 this:tell_debug(depth, "Package Created At: ", ctime(toint(package_map["package_created_at"])));
+
 this:tell_debug(depth, "Package Created By: ", package_map["package_created_by"]);
+
 this:tell_debug(depth, "Package Description: ", package_map["package_description"]);
+
 if (maphaskey(package_map, "package_hash") && package_map["package_hash"])
+
   this:tell_debug(depth, "Package Hash: ", package_map["package_hash"]);
+
 endif
+
 if (maphaskey(package_map, "package_changelog") && package_map["package_changelog"])
+
   this:tell_debug(depth, "Package Changelog: ", package_map["package_changelog"]);
+
 endif
+
 if (maphaskey(package_map, "package_url") && package_map["package_url"])
+
   this:tell_debug(depth, "Package URL: ", package_map["package_url"]);
+
 endif
-"Last modified by Fengshui (#22664) on Mon Jan 17 20:28:39 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 20:55:46 2022 PST";
+
 .
+
 
 @verb $mpm:"display_package_data" this none this
+
 @program $mpm:display_package_data
+
 ":display_package_data(MAP package_data, INT depth) => NONE";
+
 "display data about this level of the package then call descendent levels";
+
 {package_data, depth} = args;
+
+if (package_data["object"] == $nothing)
+
+  this:tell_debug(depth, "Name & Number: $nothing (#-1)");
+
+  return;
+
+endif
+
 this:tell_debug(depth, "Name & Number: ", package_data["name"], " (", package_data["object"], ")");
+
 this:tell_debug(depth, "Cored as: ", $string_utils:from_list(package_data["corified_references"], ", "));
+
 if (maphaskey(package_data, "parent_data"))
+
   this:tell_debug(depth, "Parents:");
+
   $mpm:display_package_data(package_data["parent_data"], depth + 1);
+
 else
+
   this:tell_debug(depth, "Parents: $nothing");
+
 endif
+
 if (maphaskey(package_data, "properties"))
+
   this:tell_debug(depth, "Props: ", $string_utils:from_list(package_data["properties"]["property_names"], ", "));
+
 endif
+
 if (maphaskey(package_data, "verbs"))
+
   this:tell_debug(depth, "Verbs: ", $string_utils:from_list(package_data["verbs"]["verb_names"], ", "));
+
 endif
+
 if (maphaskey(package_data, "verb_names"))
+
   this:tell_debug(depth, "Verbs: ", $string_utils:from_list(package_data["verb_names"], ", "));
+
 endif
+
 if (maphaskey(package_data, "dependent_verb_map"))
+
   for value, key in (package_data["dependent_verb_map"])
+
     this:tell_debug(depth, "Relies on:");
+
     $mpm:display_package_data(value, depth + 1);
+
   endfor
+
 endif
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:10 2022 PST";
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 17:47:55 2022 PST";
+
 .
+
 
 @verb $mpm:"explode" this none this
+
 @program $mpm:explode
+
 ":explode(subject [, break [, full]])";
+
 "Return a list of those substrings of subject separated by runs of break[1].";
+
 "If 'full' is provided and true, the break is a full string";
+
 "break defaults to space.";
+
 "THIS VERSION DOES NOT SUPPORT empty strings between break markers";
+
 {subject, ?breakit = {" "}, ?full = 0} = args;
+
 if (!full)
+
   breakit = breakit[1];
+
 endif
+
 subject = subject + breakit;
+
 parts = {};
+
 while (subject)
+
   if ((i = index(subject, breakit)) > 1)
+
     parts = {@parts, subject[1..i - 1]};
+
   endif
+
   subject = subject[i + length(breakit)..$];
+
 endwhile
+
 return parts;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 19:03:28 2022 PST";
+
 .
 
+
 @verb $mpm:"dump_package_headers" this none this
+
 @program $mpm:dump_package_headers
+
 ":dump_package_headers() => NONE";
+
 "dumps the package headers which can be included in the package_list for your";
+
 "repository.";
+
 headers = {};
+
 divider = "%%%";
+
 for package_list, OBJ in (this.created_packages)
+
   for package in (package_list)
+
     headers = {@headers, tostr(package["package_name"], divider, package["package_version"], divider, package["package_hash"], divider, package["package_description"], divider, package["package_created_at"], divider, package["package_created_by"], divider, package["package_url"], divider, package["package_changelog"])};
   endfor
 endfor
+
 player:tell_lines(headers);
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 20:27:31 2022 PST";
+
 .
+
 
 @verb $mpm:"parse_available_package_headers" this none this
+
 @program $mpm:parse_available_package_headers
+
 ":parse_available_package_headers(LIST available_package_headers) => LIST";
+
 "parses the package header information into a LIST of MAPs that can be consumed";
+
 "by @load-package and other verbs";
+
 {available_package_headers} = args;
+
 available_packages = {};
+
 for header in (available_package_headers)
+
   pieces = this:explode(header, "%%%");
+
   available_package = [];
+
   available_package["package_name"] = pieces[1];
+
   available_package["package_version"] = pieces[2];
+
   available_package["package_hash"] = pieces[3];
+
   available_package["package_description"] = pieces[4];
+
   available_package["package_created_at"] = pieces[5];
+
   available_package["package_created_by"] = pieces[6];
+
   available_package["package_url"] = pieces[7];
+
   available_package["package_changelog"] = `pieces[8] ! E_RANGE => ""';
+
   available_packages = {@available_packages, available_package};
+
 endfor
+
 return available_packages;
+
 "Last modified by Fengshui (#22664) on Mon Jan 17 20:27:35 2022 PST";
+
 .
+
 
 @verb $mpm:"register_package_repository" this none this
+
 @program $mpm:register_package_repository
+
 ":register_package_repository(STR name, STR URL) => NONE";
+
 "register a new package repository";
+
 "TODO: validate the repo exists";
+
 {name, url} = args;
+
 if (maphaskey(this.registered_repositories, name))
+
   raise(E_ARGS, "repo with that name already exists");
+
 endif
+
 this.registered_repositories[name] = url;
+
 "Last modified by Fengshui (#22664) on Tue Jan 18 15:53:06 2022 PST";
+
 .
+
 
 @verb $mpm:"get_reset_property_value" this none this
+
 @program $mpm:get_reset_property_value
+
 ":get_reset_property_value(MIXED value) => MIXED";
+
 "take a value, determine its type, and return an 'empty' version of it";
+
 {value} = args;
+
 if (typeof(value) == INT)
+
   return 0;
+
 elseif (typeof(value) == STR)
+
   return "";
+
 elseif (typeof(value) == FLOAT)
+
   return 0.0;
+
 elseif (typeof(value) == LIST)
+
   return {};
+
 elseif (typeof(value) == MAP)
+
   return [];
+
 elseif (typeof(value) == OBJ)
+
   return #-1;
+
 elseif (typeof(value) == BOOL)
+
   return false;
+
 else
+
   raise(E_ARGS, tostr("unable to reset value of ", value));
+
 endif
+
 "Last modified by Fengshui (#22664) on Tue Jan 18 17:55:34 2022 PST";
+
 .
 
+
 @verb $mpm:"is_mpm_update" this none this
+
 @program $mpm:is_mpm_update
+
 ":is_mpm_update(OBJ package_object, STR package_name) => BOOL";
+
 "checks if we are updating the $mpm itself, and if it is, forces creation of a new object";
+
 {package_object, package_name} = args;
+
 if (package_name == this.name)
+
   if (!$command_utils:yes_or_no("We have detected that you are updating the MOO Package Manager itself. We can't do an in-place update, since who knows what may have changed. This means we will be creating a new object. DO NOT UPDATE CORED REFERENCES TO $mpm itself, even if prompted. Wait until the package is finished installing and then update $sysobj.mpm to point to the new package manager. Got it?"))
+
     if (!$command_utils:yes_or_no("Select (YES) to continue installing. You are about to abort (NO), unless you agree to not update the $mpm cored references during install..."))
+
       raise(E_ARGS, "unable to update MOO package manager because user aborted.");
+
     endif
+
   endif
+
   return true;
+
 else
+
   return false;
+
 endif
+
 "Last modified by Fengshui (#22664) on Tue Jan 18 18:29:24 2022 PST";
+
+.
+
+
+@verb $mpm:"match_dynamic_prop_calls_in_code" this none this
+
+@program $mpm:match_dynamic_prop_calls_in_code
+
+":match_dynamic_prop_calls_in_code(LIST verbcode) => LIST";
+
+"you pass this verb a list of code and it returns all the potential dynamic props in it";
+
+"WARNING: we can't parse these, so the code calling this probably needs to throw an error";
+
+"if it detects results";
+
+{verbcode} = args;
+
+dynamic_prop_calls = {};
+
+for line in (verbcode)
+
+  if (comment_result = $mpm:match_comment(line))
+
+    "we have a comment, we ignore as they often have references we don't care about";
+
+    continue;
+
+  endif
+
+  "we need to deal with quotes in lines of code by stripping them out, since we have weird";
+
+  "references and regexp matches in strings like in $gender_utils";
+
+  line = $mpm:strip_quoted_strings(line);
+
+  "this should detect dobj.( and $something:(";
+
+  "TODO: it will not detect dobj.(\"quotedtext\") I have no idea why";
+
+  result = pcre_match(line, "[a-z0-9_]+\\.\\(.+\\)", 0, 1);
+
+  if (!result)
+
+    continue;
+
+  endif
+
+  for match in (result)
+
+    dynamic_prop_calls = setadd(dynamic_prop_calls, match["0"]["match"]);
+
+  endfor
+
+endfor
+
+return dynamic_prop_calls;
+
+"Last modified by Fengshui (#22664) on Wed Jan 19 18:11:47 2022 PST";
+
 .
