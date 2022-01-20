@@ -1,3 +1,7 @@
+## [1.2.0] - 2022.01.20 5:29PM
+* Removed --ignore-all-props from @make-package argument list since it doesn't exist
+* Added String Utils Enhanced 1.0 package
+
 ## [1.1.0] - 2022.01.19 7:22PM
 * Fixed some typos in commented code
 * Added --ignore-all-cored-props option
