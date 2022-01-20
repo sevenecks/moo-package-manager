@@ -361,6 +361,12 @@ If you would like to add another package repository, you can register that repos
 
 > Warning: Please take care when adding package repositories. You should review any code you are adding to your MOO before using `@install-package`. 
 
+## Upgrading MPM
+
+If a new version of MPM is available, you'll be able to use `@load-package` and find it in `Slither's MOO Packages`. If you are unsure of what version you are currently running check `$mpm.package_manager_version`. Typically there will also be a new version of `MOO Package Manager Wizard Verbs` available as well. You should update MPM first, and then update the wizard verbs package.
+
+> Warning: There is a bug where MPM will detect invalid objects on ToastCore. If you are prompted to use an invalid object JUST SAY NO.
+
 ## Caveats
 * By default MPM will not serialize verbs/props on ancestors who have a parent of $nothing (IE: #1), as this can make a package huge. This can be over-ridden..
 
@@ -372,6 +378,7 @@ If you would like to add another package repository, you can register that repos
 * There is some issue with generate_json where it fails saying invalid argument when passing a package_map at certain times. I'm trying to track down what it is. It might be on very large maps, or it might be certain characters being in the map. If you have this issue and can pin it down let me know.
 * If you have a very large package your MOO may not display the entire encoded package, even if you use `notify()`. In these cases please use something like ;notify(me, $mpm.last_created_package_encoded[1..100000]); notify(me, $mpm.last_created_package_encoded[100001..$]) and then join the two (making sure you don't have any line breaks or spaces (sometimes there is a trailing space when you join lines, delete it!)
 * If you use GitHub to host your packages, be aware that the `raw.githubusercontent.com` version of your file may be cached for ~5 minutes, so if you update it, you may need to wait a bit after pushing changes.
+* If you are using ToastCore, it may detect an invalid object and prompt you to use it during package creation. Just say NO! 
 
 ## Contributing
 
