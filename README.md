@@ -237,6 +237,12 @@ There are a number of meta data fields associated with your package. These field
 | Package Target Self | Notifies the package manager that the target of this package is the `wizard` installing the package | no |
 | MPM Version | The version of MPM that was used to create the package | yes |
 
+### Self Targeted Packages
+
+It is possible to create packages targeted at the `wizard` installing the package via MPM. This is a great way to package up cool verbs that you use and think others will find useful, such as a version of `@verbs` or `@parents` that displays information in a well formatted way.
+
+Care should be taken when creating self targeted packages. You need to make sure you aren't packaging up an entire `player` bit. Use the command line arugments to filter out or ignore properties and cored references that your package doesn't need to include and that might interfere with or alter the `wizard` installing the package.
+
 ### Testing a Created Package
 
 It's important that you test your newly created package on a dev server before making it available to the public. It would be preferable to test the package with a stock [ToastCore](https://github.com/lisdude/toastcore) database. This will ensure it works as expected without any potential hidden dependencies that cause it to function properly on your MOO, that were some how not serialized as part of the package.
