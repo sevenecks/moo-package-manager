@@ -16,6 +16,8 @@
 * Updated warnings section
 * renamed moo_package_manager_user_code to moo_package_manager_wizard_verbs
 * fixed a few typos and poorly written sentences in the readme
+* full editing pass on readme
+* updated About section of readme
 
 ## [1.1.0] - 2022.01.19 7:22PM
 * Fixed some typos in commented code
