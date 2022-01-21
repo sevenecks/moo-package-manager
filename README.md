@@ -121,6 +121,8 @@ To make a package, you use the `@make-package` command and provide arguments. Fo
 
 When your package is finished, the package map and serialized package maps will be stored in the `$mpm.last_created_package_map` and `$mpm.last_created_package_hash` properties respectively.
 
+> Warning: If your package is larger than your servers `MAX_QUEUED_OUTPUT` (set in options.h or overridden with `$server_options.max_queued_output` you won't be able to print the entire package using `@show` or even a single `notify()`. In these cases the following eval may come in handy as it makes use of the `suppress-new-line` option of `notify()` which should keep your package from displaying with line breaks: `;notify(me, $mpm.last_created_package_encoded[1..100000], 0, 1); notify(me, $mpm.last_created_package_encoded[100001..$], 0, 1)` just make sure there are no extra spaces or non base64 characters at the end of the string after copy and pasting.
+
 > Note: See the section on Making Packages Available Online for more information on how to make your package available online.
 
 ### Package Creation Caveats
@@ -387,7 +389,6 @@ If a new version of MPM is available, you'll be able to use `@load-package` and 
 
 ## Known Issues
 * There is some issue with generate_json where it fails saying invalid argument when passing a package_map at certain times. I'm trying to track down what it is. It might be on very large maps, or it might be certain characters being in the map. If you have this issue and can pin it down let me know.
-* If you have a very large package your MOO may not display the entire encoded package, even if you use `notify()`. In these cases please use something like ;notify(me, $mpm.last_created_package_encoded[1..100000]); notify(me, $mpm.last_created_package_encoded[100001..$]) and then join the two (making sure you don't have any line breaks or spaces (sometimes there is a trailing space when you join lines, delete it!)
 * If you use GitHub to host your packages, be aware that the `raw.githubusercontent.com` version of your file may be cached for ~5 minutes, so if you update it, you may need to wait a bit after pushing changes.
 * If you are using ToastCore, it may detect an invalid object and prompt you to use it during package creation. Just say NO! 
 
