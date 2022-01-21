@@ -1,17 +1,15 @@
 # MOO Package Manager (MPM) 1.2
 
 ## About
-The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serialized map is then encoded and can then be copied to another MOO / made available online and installed via the MOO Package Manager.
+The MOO Package Manager is a configurable package manager written in MOO code and designed for [ToastStunt 2.7+](https://github.com/lisdude/toaststunt) (a LambdaMOO fork). It allows you to:
+
+* download packages and automatically install them
+* package code up on one MOO and make it available for installation on another MOO also using MPM
+* package code up and make it avialable online to other MPM users by URL
+* package code up and add it to a code repository which can be registered by others using MPM
 
 ## Change Log
-All changes to this repo or the MPM itself are logged in [CHANGELOG.md](CHANGELOG.md)
-
-## Warnings
-
-* The MOO Package Manager is in `open beta` and should be considered only mildly stable. You use this code at your own risk.
-* You should always test install new packages on a dev server to make sure nothing breaks.
-* After loading a package but prior to installing, you should `@view-package loaded` and review the verbs it will touch, and possibly review the code being to ensure you are OK with what you are installing.
-* By default the MOO Package Manager comes with one registered package repository which points to this repos [/packages](/packages) directory. You can add others at your own discresion, and at your own risk.
+All changes to this repo or MOO Package Manager are logged in [CHANGELOG.md](CHANGELOG.md)
 
 ## Requirements
 * [ToastStunt 2.7+](https://github.com/lisdude/toaststunt) (it may work on older versions, perhaps even Stunt, with some modifications)
@@ -20,6 +18,12 @@ All changes to this repo or the MPM itself are logged in [CHANGELOG.md](CHANGELO
 * LamdaCore or ToastCore derived MOO (or you'll need to do some hacking!)
 * $string_utils, $object_utils, $command_utils, @program 
 * $diff_utils (this is available through the package manager, and the package manager can install it without it existing)
+
+## Warnings
+* The MOO Package Manager is in `open beta` and should be considered only mildly stable. You use this code at your own risk.
+* You should always test install new packages on a dev server to make sure nothing breaks.
+* After loading a package but prior to installing, you should `@view-package loaded` and review the verbs it will touch, and possibly review the code being to ensure you are OK with what you are installing.
+* By default the MOO Package Manager comes with one registered package repository which points to this repos [/packages](/packages) directory. You can add others at your own discresion, and at your own risk.
 
 ## Installation
 Hopefully, this will be the last time you need to manually install MOO code! At least, that's the goal. In order to install the MOO Package Manager you will need to copy and paste some code. The package manager code itself is quite long, so including it in this README is not effective. The code is stored in files, linked below.
