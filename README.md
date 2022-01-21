@@ -6,7 +6,7 @@ The MOO Package Manager is a configurable package manager written in MOO code an
 * download packages and automatically install them
 * package code up on one MOO and make it available for installation on another MOO also using MPM
 * package code up and make it avialable online to other MPM users by URL
-* package code up and add it to a code repository which can be registered by others using MPM
+* package code up and add it to a code repository which can be registered with any MPM
 
 ## Change Log
 All changes to this repo or MOO Package Manager are logged in [CHANGELOG.md](CHANGELOG.md)
