@@ -30,7 +30,7 @@ Hopefully, this will be the last time you need to manually install MOO code! At 
 2. `@corify newObj# as $mpm` 
 3. Open the [MOO Package Manager Code](/code/moo_package_manager)
 4. Copy and paste the code into your MOO
-5. Open the [MOO Package Manager User Code](/code/moo_package_manager_user)
+5. Open the [MOO Package Manager Wizard Verbs Code](/code/moo_package_manager_wizard_verbs)
 6. Copy and paste the code into your MOO
 7. @create $waif named Memory Waif
 8. @corify newObj# as $memory_waif
@@ -40,7 +40,7 @@ Hopefully, this will be the last time you need to manually install MOO code! At 
 
 > Note: `@corify` adds a new property to `$sysobj` (`#0` on most systems). If you don't have this verb for some reason you can just `@prop $sysobj.mpm newObj#`
 
-> Note: If you have an issue copying the MOO Package Manager User Code because `me` is not defined, just change all references to `me` to the object# of your player bit (yourself).
+> Note: If you have an issue copying the MOO Package Manager Wizard Verbs because `me` is not defined, just change all references to `me` to the object# of your player bit (yourself).
 
 > Note: If you have trouble creating a property with [] (map) then create it with any value and then evaluate `;$memory_waif.:data = []`
 
@@ -180,27 +180,33 @@ This is due to the fact that we can't smartly serialize these references without
 | --serialize-#1 | enable full serialization of ancestors whose parent is $nothing | no |
 | --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!) | no |
 | --ignore-prop-list=propname1,propname2,#20.propname,... | if no obj# is provided, ignores any prop on any object with specified propname, if obj# is provided, ignores that prop on only that obj# | no |
-| --reset-prop-value-list=obj.prop,obj.prop,... | if provided, when serializing obj.prop it will be reset to an empty version of whatever value it holds to an empty/false value. | no |
+| --reset-prop-value-list=obj.prop,obj.prop,... | if provided, when serializing obj.prop it will be reset to an empty/false version of whatever value it holds | no |
 | --only-origin-object | Ignore all package dependencies and only serialize the origin object + ancestry | no |
 | --ignore-all-cored-props | Ignore all cored properties, meaning the props & objects they reference will not be serialized in the package | no |
 | --dont-serialize-cored-aliases | If any object being serialized has cored aliases, such as $string_utils, they will not be included |
 | --ignore-all-non-cored-props | Ignores any properties defined on objects, causing them to not be serialized in the package |
-| --only-include-prop-list=obj.prop1,prop2,... | Only serialize properties included in this list | no |
+| --only-include-prop-list=obj.prop1,prop2,... | if obj# is provided, it will only include that prop on the specified obj, if no obj# provided it will include any matching prop on any obj being included in the package | no |
 | --post-install-verb=verbname | Specify a verb that will be automatically run after a successful installation. Verb must exist on `origin object` and cannot accept any arguments. | no |
 | --target-self | this option overrides the default behavior and forces the package to be installed on the `player` installing it. Must be used in conjunction with --only-origin-object | no |
 | --allow-dynamic-verb-calls | this will prevent package creation from aborting when a dynamic verb call is detected. use with care. | no | 
 | --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
-| --dont-serialize-ancestry | UNTESTED ALPHA FEATURE. This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing | no |
+| --dont-serialize-ancestry | This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing, and avoiding the need to rewire ancestors. useful if you aren't relying on ancestors verbs | no |
 | --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
 
 > Note: Arguments can be provided in any order, except for the object number, which must be first.
 
-An example of using --reset-prop-value-list to `@make-package` a new version of the MOO Package Manager (in this case, the obj# for the package manager is #24836). In order to do this we employ the `--reset-prop-value-list` and `--only-origin-object` arguments to only serialize the MPM itself, as well as reset props that are specific to the instance of the object and not needed in the package itself. It also enables `--dry-run` to avoid saving the package map. It also enabled
-`--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. It then specifies we should allow serializing to continue when we detect dynamic prop calls via `--allow-dynamic-prop-calls`.
+Below is an example of using --reset-prop-value-list to `@make-package` a new version of the MOO Package Manager (in this case, the obj# for the package manager is #24836). 
+
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --dry-run
 ```
+
+* `--reset-prop-value-list` to reset props specific to the instance of the object and that are not needed in the package. 
+* `--only-origin-object` argument to only serialize the MPM itself.
+* `--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. 
+* `--allow-dynamic-prop-calls` and dynamic verb calls via `--allow-dynamic-verb-calls` pecifies we should allow serializing to continue when we detect dynamic prop calls
+* `--dry-run` to avoid saving the package map. 
 
 The `--reset-prop-value-list` argument can only reset certain properties:
 
@@ -216,7 +222,7 @@ The `--reset-prop-value-list` argument can only reset certain properties:
 
 All other property values (such as WAIF, ANON, ERR) will throw `E_ARGS` with the value it failed to reset, and package creation will be aborted.
 
-An example of serializing the MPM Helper Verbs that a `wizard` uses to make/load/install packages:
+An example of serializing the MPM Helper Verbs that a `wizard` uses to make/load/install/view packages:
 
 ```
 @make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --target-self --dry-run
@@ -249,8 +255,9 @@ There are a number of meta data fields associated with your package. These field
 | Package URL | The url where the package can be found online. | no |
 | Package Changelog | Holds the most recent updates to the package, for when you are updating an existing package | no |
 | Package Post Install Note | A note shown to the user when the package is finished installing. Good for any additional setup options, or pointing to help files | no |
-| Package Post Install Verb | A verb that gets run when the package finishes installing | no |
-| Package Target Self | Notifies the package manager that the target of this package is the `wizard` installing the package | no |
+| Package Options | The options that the package was created using. | no |
+| Package Post Install Verb | (DEPRECATED, included in package options now) A verb that gets run when the package finishes installing | no |
+| Package Target Self | (DEPRECATED, included in package options now) Notifies the package manager that the target of this package is the `wizard` installing the package | no |
 | MPM Version | The version of MPM that was used to create the package | yes |
 
 ### Self Targeted Packages
@@ -271,7 +278,7 @@ The `@load-package` verb is used to browse packages/package info in  registered 
 
 ## Viewing a Package
 
-`@view-package` will display a pretty printed dump of the package, which you can use to review. You can also review the `$mpm.laaded_package` property directly, to see the entire package map.
+`@view-package` will display a pretty printed dump of the package, which you can use to review. You will be given the option to view the property data and verb code included in the package.
 
 After creating a package you can view it with `@view-package created`.
 
@@ -285,11 +292,11 @@ After you have loaded a package, you can view it with `@view-package loaded`.
 
 After loading and viewing a package you can `@install-package` to kick off the installation process. Installation is an interactive process that will require you to make decisions about how your new package is installed. There a number of decision points during the installation process which are outlined below.
 
-When you first `@install-package` he package manager checks to see if the package hash matches the hashed version of the package map. If this fails, the package installation is aborted.
+When you first `@install-package` the package manager checks to see if the package hash matches the hashed version of the package map. If this fails, the package installation is aborted.
 
-> Note: If you are seeing a hash mismatch, then there is probably a bug in how we are encoding the package, and you should open an issue or reach out on Discord (see Contributing section).
+> Note: If you are seeing a hash mismatch, it doesn't mean there is something wrong with the package. I have been seeing issues with this and I'm looking into why it is happening.
 
-It will then check to see if this specific version of this package has already been installed (by checking `$mpm.installed_packages` for a matching package hash. If the package has already been installed, you will see a message alerting you of this, but you may continue your installation.
+It will then check to see if this package has already been installed (by checking `$mpm.installed_packages` for a matching package id. If the package has already been installed, you will see a message alerting you of this, but you may continue your installation.
 
 The package meta data (such as name, description, version, created at, etc.) will then be displayed and you will be prompted to confirm you want to install the package.
 
@@ -343,9 +350,14 @@ First, let's discuss the relevant pieces of data that are created when you gener
 This is a map containing the meta data about your package as well as the package data (your actual package objects/verbs/props/etc). When the package is created, the `package map` is stored as a `map` in `$mpm.last_created_package_map`. This is useful for you if you want to explore the created package map or copy it to another MOO.
 
 **Copying the Package Map**
-You can also choose to copy this map over to another MOO with the MOO Package Manager and set the `$mpm.loaded_package` property with the data, thus making it available to `@view-package` and `@install-package`. This is the basic way of moving a package from one MOO to another.
 
-> Warning: This may prove more difficult if you have a very large package. You won't be able to use `@set` to set the property and you will instead need to use an eval such as `;$mpm.loaded_package = packagemapdata`.
+You can also choose to copy this map over to another MOO with the MOO Package Manager, but the data must be converted to json when you are setting the `$mpm.loaded_package` property with the data:
+
+```
+;$mpm.loaded_package = generate_json(copiedPackageMap, "embedded-types")
+```
+
+It will now be available to `@view-package` and `@install-package`. This is the basic way of moving a package from one MOO to another.
 
 **Encoded Package Map**
 
@@ -378,9 +390,9 @@ This will display your package headers. Now just simply copy and paste (ensuring
 You have created a package repository. This package repository will not be available to any MOO Package Manager by default and will need to be added by anyone who wishes to download packages from your repository.
 
 ### Adding Package Repositories
-By default the only package repository the MOO Package Manager has, point's to this Github Repo, and is registered as `Slither's MOO Packages`. These are trusted packages.
+By default the only package repository the MOO Package Manager has point's to this Github Repo, and is registered as `Slither's MOO Packages`..
 
-If you would like to add another package repository, you can register that repository with your MOO Package Manager by executing:
+If you would like to add another package repository to your MOO Package Manager, you can register that repository by executing:
 
 ```
 ;$mpm:register_package_repository(name, url);
@@ -392,17 +404,16 @@ If you would like to add another package repository, you can register that repos
 
 If a new version of MPM is available, you'll be able to use `@load-package` and find it in `Slither's MOO Packages`. If you are unsure of what version you are currently running check `$mpm.package_manager_version`. Typically there will also be a new version of `MOO Package Manager Wizard Verbs` available as well. You should update MPM first, and then update the wizard verbs package.
 
-> Warning: There is a bug where MPM will detect invalid objects on ToastCore. If you are prompted to use an invalid object JUST SAY NO.
+> Warning: There is a bug where MPM will detect invalid objects on ToastCore. If you are prompted to use an invalid object during installation JUST SAY NO.
 
 ## Caveats
-* By default MPM will not serialize verbs/props on ancestors who have a parent of $nothing (IE: #1), as this can make a package huge. This can be over-ridden..
+* By default MPM will not serialize verbs/props on ancestors who have a parent of $nothing (IE: #1), as this can make a package huge. This can be overridden with command arguments.
 
 ## Unsupported
-* Does not support dynamic verb or prop references (IE: $string_utils:("verbname") or $string_utils.(propvar))
+* Does not support unwinding dynamic verb or prop references (IE: $string_utils:("verbname") or $string_utils.(propvar))
 * Does not support serializing verbs/props that have binary data in them (IE: ~OE)
 
 ## Known Issues
-* There is some issue with generate_json where it fails saying invalid argument when passing a package_map at certain times. I'm trying to track down what it is. It might be on very large maps, or it might be certain characters being in the map. If you have this issue and can pin it down let me know.
 * If you use GitHub to host your packages, be aware that the `raw.githubusercontent.com` version of your file may be cached for ~5 minutes, so if you update it, you may need to wait a bit after pushing changes.
 * If you are using ToastCore, it may detect an invalid object and prompt you to use it during package creation. Just say NO! 
 

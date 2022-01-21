@@ -1,4 +1,4 @@
-## [1.2.0] - 2022.01.20 5:29PM
+## [1.2.0] - 2022.01.21 @ 12:42am
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
 * Added String Utils Enhanced 1.0 package
 * Packaging up all options used when creating a package so that they can be used when installing a package
@@ -13,6 +13,9 @@
 * Added MPM Wizard Verbs 1.2
 * Added MPM 1.2
 * Added Upgrading MPM section to readme
+* Updated warnings section
+* renamed moo_package_manager_user_code to moo_package_manager_wizard_verbs
+* fixed a few typos and poorly written sentences in the readme
 
 ## [1.1.0] - 2022.01.19 7:22PM
 * Fixed some typos in commented code
