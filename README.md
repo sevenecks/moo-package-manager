@@ -10,7 +10,7 @@ All changes to this repo or the MPM itself are logged in [CHANGELOG.md](CHANGELO
 
 * The MOO Package Manager is in `open beta` and should be considered only mildly stable. You use this code at your own risk.
 * You should always test install new packages on a dev server to make sure nothing breaks.
-* After loading a package but prior to installing, you should `@view-package loaded` and review the verbs it will touch, and possibly review the code being installed by evaling `;parse_json($mpm.loaded_package, "embedded-types")` to ensure you are OK with what you are installing.
+* After loading a package but prior to installing, you should `@view-package loaded` and review the verbs it will touch, and possibly review the code being to ensure you are OK with what you are installing.
 * By default the MOO Package Manager comes with one registered package repository which points to this repos [/packages](/packages) directory. You can add others at your own discresion, and at your own risk.
 
 ## Requirements
