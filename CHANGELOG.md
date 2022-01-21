@@ -12,6 +12,7 @@
 * Updated example @make-package for creating a new version of $mpm
 * Added MPM Wizard Verbs 1.2
 * Added MPM 1.2
+* Added Upgrading MPM section to readme
 
 ## [1.1.0] - 2022.01.19 7:22PM
 * Fixed some typos in commented code

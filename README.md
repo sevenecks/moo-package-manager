@@ -66,6 +66,20 @@ To install the Diff Utility follow these steps:
 
 You should now have a working package manager, and a working Diff Utilities which you can reference with `$diff_utils`.
 
+**Upgrading MOO Package Manager**
+
+Upgrading MPM is straight-forward. Just run `@load-package` and check for an available update in `Slither's MOO Packages`. If there is an update available, you can install it. The version you install with the install instructions above is _probably_ out of date.
+
+When you update, MPM will create a new version of itself. This is just in case there is an issue with the installation, you'll still have a working copy of MPM.
+
+After upgrading you will want to copy your `.created_packages` and `.installed_packages` props from the old MPM to the new one.
+
+At this point you can point `$mpm` to the new object by doing `;$mpm = newObj#`.
+
+**Upgrading MOO Package Manager Wizard Verbs**
+
+Whenever a new release of MPM comes out there will be an accompanying update to the wizard verbs. You should install the MPM update first, and then update the MPM Wizard Verbs, to avoid backwards compatibility issues
+.
 ## What's in a package?
 A package is a collection of everything needed to recreate an object and its dependencies on another MOO.
 
