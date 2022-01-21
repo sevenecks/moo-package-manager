@@ -1,4 +1,4 @@
-# MOO Package Manager (MPM) 1.1
+# MOO Package Manager (MPM) 1.2
 
 ## About
 The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serialized map is then encoded and can then be copied to another MOO / made available online and installed via the MOO Package Manager.
@@ -66,6 +66,20 @@ To install the Diff Utility follow these steps:
 
 You should now have a working package manager, and a working Diff Utilities which you can reference with `$diff_utils`.
 
+**Upgrading MOO Package Manager**
+
+Upgrading MPM is straight-forward. Just run `@load-package` and check for an available update in `Slither's MOO Packages`. If there is an update available, you can install it. The version you install with the install instructions above is _probably_ out of date.
+
+When you update, MPM will create a new version of itself. This is just in case there is an issue with the installation, you'll still have a working copy of MPM.
+
+After upgrading you will want to copy your `.created_packages` and `.installed_packages` props from the old MPM to the new one.
+
+At this point you can point `$mpm` to the new object by doing `;$mpm = newObj#`.
+
+**Upgrading MOO Package Manager Wizard Verbs**
+
+Whenever a new release of MPM comes out there will be an accompanying update to the wizard verbs. You should install the MPM update first, and then update the MPM Wizard Verbs, to avoid backwards compatibility issues
+.
 ## What's in a package?
 A package is a collection of everything needed to recreate an object and its dependencies on another MOO.
 
@@ -120,6 +134,8 @@ To make a package, you use the `@make-package` command and provide arguments. Fo
 > Warning: The more complicated your code is, and the more reliant it is on other utilities/objects the larger your package is going to be.
 
 When your package is finished, the package map and serialized package maps will be stored in the `$mpm.last_created_package_map` and `$mpm.last_created_package_hash` properties respectively.
+
+> Warning: If your package is larger than your servers `MAX_QUEUED_OUTPUT` (set in options.h or overridden with `$server_options.max_queued_output` you won't be able to print the entire package using `@show` or even a single `notify()`. In these cases the following eval may come in handy as it makes use of the `suppress-new-line` option of `notify()` which should keep your package from displaying with line breaks: `;notify(me, $mpm.last_created_package_encoded[1..100000], 0, 1); notify(me, $mpm.last_created_package_encoded[100001..$], 0, 0)` just make sure there are no extra spaces or non base64 characters at the end of the string after copy and pasting. If you get a network buffer error, try running the eval again.
 
 > Note: See the section on Making Packages Available Online for more information on how to make your package available online.
 
@@ -183,7 +199,7 @@ An example of using --reset-prop-value-list to `@make-package` a new version of 
 `--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. It then specifies we should allow serializing to continue when we detect dynamic prop calls via `--allow-dynamic-prop-calls`.
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls
 ```
 
 The `--reset-prop-value-list` argument can only reset certain properties:
@@ -387,7 +403,6 @@ If a new version of MPM is available, you'll be able to use `@load-package` and 
 
 ## Known Issues
 * There is some issue with generate_json where it fails saying invalid argument when passing a package_map at certain times. I'm trying to track down what it is. It might be on very large maps, or it might be certain characters being in the map. If you have this issue and can pin it down let me know.
-* If you have a very large package your MOO may not display the entire encoded package, even if you use `notify()`. In these cases please use something like ;notify(me, $mpm.last_created_package_encoded[1..100000]); notify(me, $mpm.last_created_package_encoded[100001..$]) and then join the two (making sure you don't have any line breaks or spaces (sometimes there is a trailing space when you join lines, delete it!)
 * If you use GitHub to host your packages, be aware that the `raw.githubusercontent.com` version of your file may be cached for ~5 minutes, so if you update it, you may need to wait a bit after pushing changes.
 * If you are using ToastCore, it may detect an invalid object and prompt you to use it during package creation. Just say NO! 
 
