@@ -5,6 +5,13 @@
 * Updated readme to callout how to handle large package displays via notify
 * Added $mpm:version verb to return MPM version
 * Added check for package version against $mpm:version to block installing packages created with a newer version of MPM than is installed. this will prevent compatibility issues.
+* Updated @load-package to show a 404 error when detected and added try/catch to offer to display the returned data when there is a processing error (or we hit a redirect, etc)
+* Updated @view-package to support showing verb and prop data. Added $mpm:display_property_data and $mpm:display_verb_data to support this.
+* Added ANSI support for Sindome style and DarkOwl style color utils
+* Completely redid @view-package to utilize ansi, format information better, provide info in a better order, and added displaying of options the package was created with (new verb $mpm:display_package_options supports this)
+* Updated example @make-package for creating a new version of $mpm
+* Added MPM Wizard Verbs 1.2
+* Added MPM 1.2
 
 ## [1.1.0] - 2022.01.19 7:22PM
 * Fixed some typos in commented code

@@ -1,4 +1,4 @@
-# MOO Package Manager (MPM) 1.1
+# MOO Package Manager (MPM) 1.2
 
 ## About
 The MOO Package Manager is a configurable utility for packaging code up on one MOO and making it available for installation on another MOO. At the core it is provided with an object which acts as the `origin object` which is the starting point and primary piece of your package. It then populates and serializes a dependency graph, which is turned into a serialized version (using maps) of your package. The serialized map is then encoded and can then be copied to another MOO / made available online and installed via the MOO Package Manager.
@@ -185,7 +185,7 @@ An example of using --reset-prop-value-list to `@make-package` a new version of 
 `--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. It then specifies we should allow serializing to continue when we detect dynamic prop calls via `--allow-dynamic-prop-calls`.
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --dry-run --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls
 ```
 
 The `--reset-prop-value-list` argument can only reset certain properties:
