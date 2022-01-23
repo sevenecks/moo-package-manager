@@ -1,5 +1,6 @@
 ## [1.3.0] - 2022.01.23 2:25PM
 * Added String Utils Enhanced @ 1.1
+* Added Enhanced Coder Verbs @ 1.0
 
 ## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
