@@ -1,7 +1,11 @@
+## [1.3.0] - 2022.01.23 2:25PM
+* Added String Utils Enhanced @ 1.1
+
 ## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
 * Added String Utils Enhanced 1.0 package
 * Packaging up all options used when creating a package so that they can be used when installing a package
+* Made --dont-serialize-ancestry option detected when installing a package so we don't try to rewire the parentage when it doesn't match, and so it doesn't try to update ancestors which won't actually exist in the package
 
 ## [1.1.0] - 2022.01.19 7:22PM
 * Fixed some typos in commented code
