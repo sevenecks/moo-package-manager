@@ -84,6 +84,79 @@ At this point you can point `$mpm` to the new object by doing `;$mpm = newObj#`.
 
 Whenever a new release of MPM comes out there will be an accompanying update to the wizard verbs. You should install the MPM update first, and then update the MPM Wizard Verbs, to avoid backwards compatibility issues
 .
+
+## Loading a Package
+
+The `@load-package` verb is used to browse packages/package info in  registered package repositories and download a package into the MOO Package Manager, thus preparing it for installation. It also provides the option of specifying a package's URL directly, allowing you to load a package from anywhere.
+
+> Note: Only one package can be loaded at a time. Loading a new package will overwrite the previously loaded package.
+
+## Viewing a Package
+
+`@view-package` will display a pretty printed dump of the package, which you can use to review. You will be given the option to view the property data and verb code included in the package.
+
+After creating a package you can view it with `@view-package created`.
+
+After you have loaded a package, you can view it with `@view-package loaded`.
+
+## Installing a Package
+
+> Warning: Seriously, you should test install packages on a dev server and not on production. Especially if you are installing a package that updates commonly used verbs on commonly used objects such as $object_utils, $string_utils, etc.
+
+> Warning: If you're going to YOLO it and install an untested package on production, please dump your database `@dump-database` first and make a copy of it on your server (in case you checkpoint after installing a package that breaks your MOO).
+
+After loading and viewing a package you can `@install-package` to kick off the installation process. Installation is an interactive process that will require you to make decisions about how your new package is installed. There a number of decision points during the installation process which are outlined below.
+
+When you first `@install-package` the package manager checks to see if the package hash matches the hashed version of the package map. If this fails, the package installation is aborted.
+
+> Note: If you are seeing a hash mismatch, it doesn't mean there is something wrong with the package. I have been seeing issues with this and I'm looking into why it is happening.
+
+It will then check to see if this package has already been installed (by checking `$mpm.installed_packages` for a matching package id. If the package has already been installed, you will see a message alerting you of this, but you may continue your installation.
+
+The package meta data (such as name, description, version, created at, etc.) will then be displayed and you will be prompted to confirm you want to install the package.
+
+The package manager will then attempt to find a version of the object already existing on your server. It will check the obj# that was included in the hash (since many MOOs have the same obj# for utility packages like #20 (String Utils)). We then check if the name matches that of the package. If we are unable to find a matching object, we will check if the package has a cored reference, and if found, check their name against the package. You will then be prompted to decide if you want to update the existing object or create a new object.
+
+Creating a new object is a good way to test a package that would otherwise make in-place updates to an existing object on your MOO. However, there are a few caveats. Even if you choose to create a new object, the dependencies of that object (IE: $string_utils, $object_utils, etc) will still be in place updates, as you are not given the option to create new versions of dependencies that exist on your MOO, as the packages code will be making cored references to those objects. However, you can always decline to make the in-place updates to the verbs.
+
+> Note: If you are creating a test object, and are prompted to update cored references, you should decline to update those references. You can always reinstall the package on top of your existing test object, and update the cored references on the second go around.
+
+If the package manager cannot find a matching object, it will search for the closest ancestor of the `origin object` that it can find on your MOO, and offer to recreate the object from that ancestor. This will create not only a new `origin object` but potentially new `ancestors`. For example if the package has an `origin object` with ancestors like this:
+
+```
+#1
+  #78
+     #200
+        #500 (origin object)
+```
+
+And your MOO only has: 
+
+```
+#1
+  #78
+```
+
+Then a new version of #200 and #500 will be created (with different object numbers most likely). And then package creation will continue.
+
+At this point, the verbs, properties, and cored references of the objects in the package will begin to be created. Verbs and properties will be created if they do not exist.
+
+If a verb exists and is different, you will be shown a diff and given the option to update or decline the update.
+
+If a property exists and is different, you will be shown both property values and given the option to update or decline the update.
+
+If a cored reference doesn't exist, it will be created.
+
+If a cored reference exists and doesn't match, you will be propmted and given the option to accept or decline the update.
+
+> Warning: Take care when updating cored references, as they PROBABLY exist on your moo for a reason. If you are replacing an entire utility object it is probably OK to update its cored reference, but if the cored reference you are updating is for a dependency of the package you are installing, BEWARE! We are only installing the verbs USED BY THE PACKAGE. This means if you decided to create a new instance of String Utilities as part of this package, only a few verbs are likely being installed. You should NOT update your cored reference, or you'll be getting tons of tracebacks. Instead, choose NOT to update it, and then update the code from this package that is referencing the cored reference (IE: $widget_utils) to point to the NEW OBJECT you may have created. Remember that failing to do so when needed could result in a broken package.
+
+If at any point, an object that is needed doesn't exist (if for example the package needed $widget_utils, which your MOO didn't have), the package manager will find the closest ancestor that your MOO does have, and offer to create the parent from that, in the same way it did with the `origin object`.
+
+> Note: Any property/verb additions or updates are logged in `$mpm.log` along with the old/new verb/prop values and any other data associated with the change. While the package manager doesn't currently offer a rollback option, if the worst happens, you'll have an audit log of the changes made and can attempt to manually fix/revert.
+
+> Warning: the `$mpm.log` can get really long. You may want to clear it from time to time.
+
 ## What's in a package?
 A package is a collection of everything needed to recreate an object and its dependencies on another MOO.
 
@@ -195,6 +268,7 @@ This is due to the fact that we can't smartly serialize these references without
 | --allow-dynamic-verb-calls | this will prevent package creation from aborting when a dynamic verb call is detected. use with care. | no | 
 | --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
 | --dont-serialize-ancestry | This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing, and avoiding the need to rewire ancestors. useful if you aren't relying on ancestors verbs | no |
+| --strip-trailing-comments | Strips any trailing comments (string literals) from the end of serialized verbs | no |
 | --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
 
 > Note: Arguments can be provided in any order, except for the object number, which must be first.
@@ -203,13 +277,14 @@ Below is an example of using --reset-prop-value-list to `@make-package` a new ve
 
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --dry-run
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --dry-run
 ```
 
 * `--reset-prop-value-list` to reset props specific to the instance of the object and that are not needed in the package. 
 * `--only-origin-object` argument to only serialize the MPM itself.
 * `--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. 
 * `--allow-dynamic-prop-calls` and dynamic verb calls via `--allow-dynamic-verb-calls` pecifies we should allow serializing to continue when we detect dynamic prop calls
+* `--strip-trailing-comments` to strip off any commit messages that may have been added by a modified `@program` verb, common on some MOOs
 * `--dry-run` to avoid saving the package map. 
 
 The `--reset-prop-value-list` argument can only reset certain properties:
@@ -296,75 +371,80 @@ Care should be taken when creating self targeted packages. You need to make sure
 
 It's important that you test your newly created package on a dev server before making it available to the public. It would be preferable to test the package with a stock [ToastCore](https://github.com/lisdude/toastcore) database. This will ensure it works as expected without any potential hidden dependencies that cause it to function properly on your MOO, that were some how not serialized as part of the package.
 
-## Loading a Package
+## Managing Packages
 
-The `@load-package` verb is used to browse packages/package info in  registered package repositories and download a package into the MOO Package Manager, thus preparing it for installation. It also provides the option of specifying a package's URL directly, allowing you to load a package from anywhere.
-
-> Note: Only one package can be loaded at a time. Loading a new package will overwrite the previously loaded package.
-
-## Viewing a Package
-
-`@view-package` will display a pretty printed dump of the package, which you can use to review. You will be given the option to view the property data and verb code included in the package.
-
-After creating a package you can view it with `@view-package created`.
-
-After you have loaded a package, you can view it with `@view-package loaded`.
-
-## Installing a Package
-
-> Warning: Seriously, you should test install packages on a dev server and not on production. Especially if you are installing a package that updates commonly used verbs on commonly used objects such as $object_utils, $string_utils, etc.
-
-> Warning: If you're going to YOLO it and install an untested package on production, please dump your database `@dump-database` first and make a copy of it on your server (in case you checkpoint after installing a package that breaks your MOO).
-
-After loading and viewing a package you can `@install-package` to kick off the installation process. Installation is an interactive process that will require you to make decisions about how your new package is installed. There a number of decision points during the installation process which are outlined below.
-
-When you first `@install-package` the package manager checks to see if the package hash matches the hashed version of the package map. If this fails, the package installation is aborted.
-
-> Note: If you are seeing a hash mismatch, it doesn't mean there is something wrong with the package. I have been seeing issues with this and I'm looking into why it is happening.
-
-It will then check to see if this package has already been installed (by checking `$mpm.installed_packages` for a matching package id. If the package has already been installed, you will see a message alerting you of this, but you may continue your installation.
-
-The package meta data (such as name, description, version, created at, etc.) will then be displayed and you will be prompted to confirm you want to install the package.
-
-The package manager will then attempt to find a version of the object already existing on your server. It will check the obj# that was included in the hash (since many MOOs have the same obj# for utility packages like #20 (String Utils)). We then check if the name matches that of the package. If we are unable to find a matching object, we will check if the package has a cored reference, and if found, check their name against the package. You will then be prompted to decide if you want to update the existing object or create a new object.
-
-Creating a new object is a good way to test a package that would otherwise make in-place updates to an existing object on your MOO. However, there are a few caveats. Even if you choose to create a new object, the dependencies of that object (IE: $string_utils, $object_utils, etc) will still be in place updates, as you are not given the option to create new versions of dependencies that exist on your MOO, as the packages code will be making cored references to those objects. However, you can always decline to make the in-place updates to the verbs.
-
-> Note: If you are creating a test object, and are prompted to update cored references, you should decline to update those references. You can always reinstall the package on top of your existing test object, and update the cored references on the second go around.
-
-If the package manager cannot find a matching object, it will search for the closest ancestor of the `origin object` that it can find on your MOO, and offer to recreate the object from that ancestor. This will create not only a new `origin object` but potentially new `ancestors`. For example if the package has an `origin object` with ancestors like this:
+The `@manage-packages` wizard verb will drop you into a menu where you can manage your installed and created packages.
 
 ```
-#1
-  #78
-     #200
-        #500 (origin object)
+Manage Packages
+
+1. Installed Packages
+2. Created Packages
+3. Exit
+[Type a number for your selection or `@abort' to abort the command.]
 ```
 
-And your MOO only has: 
+**Managing Installed Packages**
+
+Choosing the `Installed Packages` menu item by selection `1`, will display a list of objects you have installed packages on (or that have been created as the `origin object` of a package.
 
 ```
-#1
-  #78
+1: #20
+2: #56
+3: #26942
+4: #88222
+[Type a number for your selection or `@abort' to abort the command.]
 ```
 
-Then a new version of #200 and #500 will be created (with different object numbers most likely). And then package creation will continue.
+Selecting an object by entering the corresponding number will display a list of the installed packages from that object.
 
-At this point, the verbs, properties, and cored references of the objects in the package will begin to be created. Verbs and properties will be created if they do not exist.
+```
+#  PACKAGE NAME @ VERSION                  INSTALLED BY        INSTALLED DATE
+1: String Utils Expanded @ 1.0             #22664              Thu Jan 20 15:08:46 2022 PST
 
-If a verb exists and is different, you will be shown a diff and given the option to update or decline the update.
+[Type a number for your selection or `@abort' to abort the command.]
+```
 
-If a property exists and is different, you will be shown both property values and given the option to update or decline the update.
+Entering the number of the package you want to examine will display the details stored about that package:
 
-If a cored reference doesn't exist, it will be created.
+```
+Name:                String Utils Expanded
+Package Version:     1.0
+Package Id:          None
+Hash:                C2F77FDA0D9D8712544E2FB1DBAA8C43
+Installed At:        Thu Jan 20 15:08:46 2022 PST
+Installed By:        #22664
+Description:         This package adds two verbs to $string_utils: names_of_indented and name_of_single which are used for pretty printing objects with indentation.
+Changelog:           None
+Post Install Note:   None
 
-If a cored reference exists and doesn't match, you will be propmted and given the option to accept or decline the update.
+(R)emove package (M)ain menu
 
-If at any point, an object that is needed doesn't exist (if for example the package needed $widget_utils, which your MOO didn't have), the package manager will find the closest ancestor that your MOO does have, and offer to create the parent from that, in the same way it did with the `origin object`.
+[Type a selection or `@abort' to abort the command.]
+```
 
-> Note: Any property/verb additions or updates are logged in `$mpm.log` along with the old/new verb/prop values and any other data associated with the change. While the package manager doesn't currently offer a rollback option, if the worst happens, you'll have an audit log of the changes made and can attempt to manually fix/revert.
+You can then choose to enter `R` to remove the package, or `M` to return to the main menu.
 
-> Warning: the `$mpm.log` can get really long. You may want to clear it from time to time.
+> Warning: The `R` option deletes the package from your `.installed_packages`. It does NOT remove or otherwise rollback changes to your MOO made when installing the package.
+
+**Managing Creating Packages**
+
+Selecting the `Created Packages` option by entering `2` from the `@manage-packages` menu works in a similar way as Installed Packages. You are dropped into a list of objects you have created packages from. You then select the object you want to view the packages for. You are them presented with a list of packages you've created with this `origin object`.
+
+```
+#  PACKAGE NAME @ VERSION                  STATUS     CREATED BY          CREATE DATE
+1: String Utils Enhanced @ 1.0             DEPRECATED Slither (#2)        Thu Jan 20 16:58:54 2022 PST
+2: String Utils Enhanced @ 1.1             LIVE       Fengshui (#22664)   Sun Jan 23 11:24:18 2022 PST
+[Type a number for your selection or `@abort' to abort the command.]
+``
+
+You will notice this list looks similar to the `Installed Packages` list, with the exception of the STATUS column. This column shows if a package is considered `live` or `deprecated`.
+
+Packages are `live` by default. Any package marked as `live` will be included when you executed `$mpm:dump_package_headers()` to dump the headers to include in your `package_list`. See the [Making Packages Available](#making-packages-available) section for more information on the `package_list`.
+
+Packages that are `deprecated` will not be included when you `$mpm:dump_package_headers()`. It is good practice to mark packages as deprecated when you release a new version that is intended to fully replace an old version, and you no longer wish to make the older version available.
+
+> Note: It is still a good practice to leave your old packages online, as folx may wish to run an older version of your package. Marking is as deprecated will serve to not have your package repository advertise the package, which means new people will not find it.
 
 ## Making Packages Available
 The MOO Package Manager makes it easy to copy packages from one MOO to another, or to make your packages available online. There is one way to copy your package directly to another MOO and two ways of  making your package available online that will be discussed below.

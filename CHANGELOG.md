@@ -1,6 +1,25 @@
 ## [1.3.0] - 2022.01.23 2:25PM
 * Added String Utils Enhanced @ 1.1
 * Added Enhanced Coder Verbs @ 1.0
+* Added $mpm:manage_packages() to let users review/edit/delete packages from .created_packages and .installed_packages
+* Added package_id, package_changelog to log_created_package, causing it to be stored in .created_packages
+* Added package_id to log_installed_package, causing it to be stored in .installed_packages
+* Added package_changelog, package_url, mpm_version to .installed_package map on install
+* Added @manage-packages verb for MPM Wizard Verbs, acts as a wrapper for $mpm:manage_packages
+* Added Manager Packages section to readme
+* Moved loading/installing/viewing packages section above Making a package section in README, since people are probably more interested in that to start.
+* Moved log_installed_package above post install note and post install verb in @install-package to facilitate better logging of MPM being upgraded
+* Added handle_post_install to $mpm to make copying over props and data easier and not require user to do anything besides confirm
+* Updated wording around hash mismatch in @install-package
+* Updated wording around previous versions not detected
+* removed debugging from $mpm:slice_ancestor_name_number_aliases_and_cored
+* Added warning in Installing a Package readme section about updating cored references
+* Updated wording in verbs for installing packages to make them more concise and clear, and add ansi
+* Made :find_object always return $nothing when is_mpm_update returns true, so we don't prompt the user to use the existing object, ever
+* Made package_update_object never install cored references when upgrading $mpm
+* Added :display_encoded_package() and added option to call it when @make-package completes
+* Removed completed TODOs from @make-package 
+* Added --strip-trailing-comments option to @make-package to remove trailing comments in verbs, added to readme as well, added :strip_trailing_comments_in_code to support this
 
 ## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
