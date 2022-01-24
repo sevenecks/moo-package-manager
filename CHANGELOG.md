@@ -1,7 +1,12 @@
-## [1.2.0] - 2022.01.21 @ 12:42am
+## [1.3.0] - 2022.01.23 2:25PM
+* Added String Utils Enhanced @ 1.1
+* Added Enhanced Coder Verbs @ 1.0
+
+## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
 * Added String Utils Enhanced 1.0 package
 * Packaging up all options used when creating a package so that they can be used when installing a package
+* Made --dont-serialize-ancestry option detected when installing a package so we don't try to rewire the parentage when it doesn't match, and so it doesn't try to update ancestors which won't actually exist in the package
 * Updated readme to callout how to handle large package displays via notify
 * Added $mpm:version verb to return MPM version
 * Added check for package version against $mpm:version to block installing packages created with a newer version of MPM than is installed. this will prevent compatibility issues.

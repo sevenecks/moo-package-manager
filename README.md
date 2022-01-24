@@ -243,6 +243,28 @@ In the above example we made use of a variety of command-line options:
 * `--ignore-all-non-cored-props` so that we don't serialize any of the props on #22664 (good thing too, since `player` bits typically have a lot of props
 * `--target-self` to make this package install on the `player` who runs `@install-package`
 
+** Example: Serializing Some Updated String Utils Verbs **
+
+Let's say you have some great $string_utils verbs that you want to make a package of and make available. Here is an example of how you might do that:
+
+```
+@make-package $string_utils --verb-list=names_of_indented,name_of_single --ignore-all-non-cored-props --ignore-all-cored-props --dry-run --dont-serialize-ancestry
+```
+
+In the above example we made use of a variety of command-line options:
+* `--verb-list` to define the verbs we want included
+* `--ignore-all-non-cored-props` and `--ignore-all-cored-props` because our new verbs don't rely on any properties so we don't need to serialize any
+* `--dont-serialize-ancestry` since we only care about the verbs on $string_utils and we are sure they don't rely on any verbs on the parents
+* `--dry-run` to generate and display the package without saving ti
+
+### Package Object Hierarchy
+
+Different MOOs have different object heirarchies. When a hierarchy is different on the MOO installing the package than it was on the MOO where the package was created, the `wizard` installing the package will be prompted to `rewire` the ancestry, where possible.
+
+//TODO OUTLINE AN EXAMPLE HIERARCHY AND WHAT MIGHT HAPPEN HERE
+
+The `--dont-serialize-ancestry` option is very valuable when you really don't care about the object heierarchy. For example, if you are packaging up an object and its dependencies and you know that nothing in the ancestors matters to your packaged code, using this option will allow for a faster and less interactive installation due to fewer objects needing to be rewired on insetallation. 
+
 ### Package Meta Data
 
 There are a number of meta data fields associated with your package. These fields are serialized with your package, and also make up the package header information that can be made available in a package_list inside a package repository. The meta data is mainly collected by prompting the user during the package creation process, but some is autogenrated as well. The meta data saved for a package is outlined below:
