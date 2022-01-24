@@ -4152,7 +4152,7 @@ for package_list, OBJ in (this.created_packages)
 
   for package in (package_list)
 
-    if (maphaskey(package, "deprecated") && package["deprecated"])
+    if (!maphaskey(package, "deprecated"))
 
       headers = {@headers, tostr(package["package_name"], divider, package["package_version"], divider, package["package_hash"], divider, package["package_description"], divider, package["package_created_at"], divider, package["package_created_by"], divider, package["package_url"], divider, package["package_changelog"])};
 
