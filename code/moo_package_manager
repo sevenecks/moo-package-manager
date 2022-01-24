@@ -1,24 +1,17 @@
 @prop $mpm."debuging" 1 rw
 
 @prop $mpm."log" {} rw
-;;$mpm.("log") = {}
-
 @prop $mpm."installed_packages" [] r
 
 @prop $mpm."created_packages" [] r
-@prop $mpm."loaded_package" "" r
-
-@prop $mpm."last_created_package_map" []] r
+@prop $mpm."loaded_package" 0 r
 
 @prop $mpm."last_created_package_encoded" "" r
-
 @prop $mpm."registered_repositories" ["Slither's MOO Packages" -> "https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/package_list"] r
 
-@prop $mpm."package_manager_version" 1.1 r
+@prop $mpm."package_manager_version" 1.3 r
 
 ;;$mpm.("aliases") = {"MOO", "Package", "Manager", "MOO Package Manager"}
-
-;;$mpm.("description") = "This is a placeholder parent for all the $..._utils packages, to more easily find them and manipulate them. At present this object defines no useful verbs or properties. (Filfre.)"
 
 @verb $mpm:"corified_as" this none this
 
@@ -55,8 +48,6 @@ for prop in (properties(#0))
 endfor
 
 return matches;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:00 2022 PST";
 
 .
 
@@ -113,8 +104,6 @@ endfor
 
 return corified_references;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:00 2022 PST";
-
 .
 
 
@@ -131,8 +120,6 @@ return corified_references;
 {line} = args;
 
 return pcre_match(line, "^[ ]*\"");
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:00 2022 PST";
 
 .
 
@@ -205,8 +192,6 @@ endfor
 
 return corified_references;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:55:17 2022 PST";
-
 .
 
 
@@ -272,8 +257,6 @@ endfor
 
 return corified_references;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:01 2022 PST";
-
 .
 
 
@@ -320,13 +303,14 @@ try
       verbs = verbs(parent);
 
       props = $object_utils:all_properties(parent);
+
     else
 
       "we aren't fully serializing so we only serialize the `missing_this_verbs` which are verbs";
 
       "that were referenced in parent code but not defined on parent, or on parent but pass()'d";
-      if (maphaskey(dependency_map["missing_parent_verbs"], parent))
 
+      if (maphaskey(dependency_map["missing_parent_verbs"], parent))
         verbs = dependency_map["missing_parent_verbs"][parent];
 
       else
@@ -352,8 +336,6 @@ except e (E_PERM)
   raise(e);
 
 endtry
-
-"Last modified by Fengshui (#22664) on Wed Jan 19 17:21:29 2022 PST";
 
 .
 
@@ -396,8 +378,6 @@ endfor
 
 return prop_map;
 
-"Last modified by Fengshui (#22664) on Tue Jan 18 18:11:16 2022 PST";
-
 .
 
 
@@ -431,13 +411,10 @@ endif
 
 return package_map;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 17:20:59 2022 PST";
-
 .
 
 
 @verb $mpm:"graph_verb_exists" this none this
-
 @program $mpm:graph_verb_exists
 
 ":graph_verb_exists(OBJ object, STR verbname, MAP dependency_graph, ?INT depth = 0) => BOOL";
@@ -501,7 +478,6 @@ try
     if ($mpm:graph_verb_exists(object, verbname, dependency_graph["parent_data"], depth + 1))
 
       return true;
-
     endif
 
   endif
@@ -509,7 +485,6 @@ try
   "let's check the `verbs` map, which is where we store more completed parts of our current processing";
 
   if (maphaskey(dependency_graph, "verb_map"))
-
     "this will be in the form of [n -> graphdata, ...] where n is the depth we were at";
 
     for graph in (dependency_graph["verb_map"])
@@ -539,7 +514,9 @@ try
   for value, key in (dependency_graph["dependent_verb_map"])
 
     "this will be a map in the form [obj -> [$mpm:package_serialize_verbs] ...";
+
     "that means that the value will be its own dependency graph we can recuse through";
+
     this:tell_debug(depth, toliteral(mapkeys(dependency_graph["dependent_verb_map"])));
 
     if (depth > 45)
@@ -566,8 +543,6 @@ except e (E_NONE)
 
 endtry
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:02 2022 PST";
-
 .
 
 
@@ -589,9 +564,7 @@ if (!this.debuging)
 
 endif
 
-player:tell(depth, ": ", $string_utils:space(depth), message);
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:28:13 2022 PST";
+player:tell($string_utils:space(depth), message);
 
 .
 
@@ -600,19 +573,25 @@ player:tell(depth, ": ", $string_utils:space(depth), message);
 
 @program $mpm:display_package
 
-":display_package(STR json, ?INT depth = 0)";
+":display_package(STR json, ?INT depth = 0, ?BOOL interactive = false)";
 
-"display all a packages data";
+"display all a packages data. if interactive is passed and true it";
 
-{json, ?depth = 0} = args;
+"will prompt the user to view the verb code and prop data";
+
+{json, ?depth = 0, ?interactive = false} = args;
 
 package_map = parse_json(json, "embedded-types");
 
 this:display_package_meta(package_map, depth);
 
-this:display_package_data(package_map["package_data"], depth);
+this:tell_debug(depth, $mpm:ansibrwhite($string_utils:left("Package Options: ", 21)));
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:55 2022 PST";
+this:display_package_options(package_map, depth);
+
+this:tell_debug(depth, $mpm:ansibrwhite($string_utils:left("Package Contents: ", 21)));
+
+this:display_package_data(package_map["package_data"], 3, interactive);
 
 .
 
@@ -628,8 +607,6 @@ this:display_package_data(package_map["package_data"], depth);
 {line} = args;
 
 return pcre_replace(line, "s!\"([^\"]*)\"!REPLACED_WITH_STRING!g");
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:28:22 2022 PST";
 
 .
 
@@ -651,7 +628,6 @@ return pcre_replace(line, "s!\"([^\"]*)\"!REPLACED_WITH_STRING!g");
 "TODO: we need to deal with verbs with multiple names";
 
 {object, verbs, props, options, ?dependency_map = [], ?depth = 0} = args;
-
 "DEPENDENCY_MAP is built over time as we recurse through the stack downwards";
 
 "this is why we merge the current depths PACKAGE_MAP into it, as if we go down";
@@ -673,9 +649,7 @@ if (!maphaskey(dependency_map, "missing_parent_verbs"))
   dependency_map["missing_parent_verbs"] = [];
 
 endif
-
 "we need to setup our options for dependencies, as they are slightly different.";
-
 "we don't ever fully serialize dependency parents -- at least at this point";
 
 dependency_options = options;
@@ -748,9 +722,11 @@ package_map = $mpm:package_initialize_for_object(object, options);
 this:tell_debug(depth, "Serializing props ", $string_utils:from_list(props, ", "), " for ", $string_utils:nn(object));
 
 package_map["properties"] = $mpm:package_serialize_properties(object, props, options, depth);
+
 this:tell_debug(depth, "Serializing verbs ", $string_utils:from_list(verbs, ", "), " for ", $string_utils:nn(object));
 
 package_map["verbs"] = [];
+
 "this gives us the serialized verbs for this object, and it also gives us the references to";
 
 "the cored (TODO include 'this' references) verbs and props this objects verbs make use of";
@@ -846,7 +822,6 @@ if (options["dont_serialize_ancestry"])
     if (!$command_utils:yes_or_no("Do you want to continue with package creation?"))
 
       raise(E_ARGS, "aborted due to missing parent verbs with --dont-serialize-ancestry enabled");
-
     endif
 
   endif
@@ -856,7 +831,6 @@ if (options["dont_serialize_ancestry"])
   package_map["parent_data"] = $mpm:package_serialize_parent($nothing, options, dependency_map, depth);
 
 else
-
   "serialize the parent";
 
   package_map["parent"] = parent(object);
@@ -937,8 +911,6 @@ endif
 
 return package_map;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 18:46:14 2022 PST";
-
 .
 
 
@@ -1010,6 +982,18 @@ for verbname in (verbs)
 
   endif
 
+  "handle stripping comments from end of verb if needed";
+
+  if (options["strip_trailing_comments"])
+
+    verbcode = $mpm:strip_trailing_comments_in_verb_code(verb_code(object, verbname));
+
+  else
+
+    verbcode = verb_code(object, verbname);
+
+  endif
+
   "we store the verbs ACTUALLY defined on the object so we can reference it in the package";
 
   "this purposefully ignores verbs that we THOUGHT might be defined here because they were called on this object";
@@ -1018,7 +1002,7 @@ for verbname in (verbs)
 
   verbs_defined_on_object = setadd(verbs_defined_on_object, verbname);
 
-  verb_data[verbname] = ["code" -> verb_code(object, verbname)];
+  verb_data[verbname] = ["code" -> verbcode];
 
   "get all the CORED VERBS called in the verb";
 
@@ -1055,7 +1039,6 @@ for verbname in (verbs)
   direct_cored_props_in_code = $mpm:match_direct_cored_in_code(verb_code(object, verbname), "prop");
 
   all_direct_cored_props = $set_utils:union(all_direct_cored_props, direct_cored_props_in_code);
-
   verb_data[verbname]["direct_cored_verbs_in_code"] = direct_cored_props_in_code;
 
   verb_info = verb_info(object, verbname);
@@ -1072,8 +1055,6 @@ endfor
 
 return ["verb_data" -> verb_data, "all_cored_verbs" -> all_cored_verbs, "all_cored_props" -> all_cored_props, "all_direct_cored_verbs" -> all_direct_cored_verbs, "all_direct_cored_props" -> all_direct_cored_props, "missing_parent_verbs" -> missing_parent_verbs, "verbs_defined_on_object" -> verbs_defined_on_object];
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 18:06:51 2022 PST";
-
 .
 
 
@@ -1084,7 +1065,6 @@ return ["verb_data" -> verb_data, "all_cored_verbs" -> all_cored_verbs, "all_cor
 ":package_serialize_cored_property_references(OBJ object, LIST cored, MAP options, MAP dependency_map, INT depth) => MAP";
 
 "TODO: do we need to update this to be more recursive and check if we already have a reference to the parents data?";
-
 "we are passing in dependency_map but it's just props so we aren't really checking it... could we just pass an empty map?";
 
 {object, cored, options, dependency_map, depth} = args;
@@ -1131,8 +1111,6 @@ endfor
 
 return cored_property_references;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 17:22:06 2022 PST";
-
 .
 
 
@@ -1173,8 +1151,6 @@ for verb_ref in (verbs)
 endfor
 
 return referenced_verbs;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:03 2022 PST";
 
 .
 
@@ -1221,8 +1197,6 @@ endfor
 
 return missing_verbs;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:03 2022 PST";
-
 .
 
 
@@ -1268,8 +1242,6 @@ endfor
 
 return this_verbs;
 
-"Last modified by Fengshui (#22664) on Tue Jan 18 17:19:51 2022 PST";
-
 .
 
 
@@ -1284,6 +1256,7 @@ return this_verbs;
 {verbcode} = args;
 
 this_verbs = {};
+
 for line in (verbcode)
 
   if (comment_result = $mpm:match_comment(line))
@@ -1313,8 +1286,6 @@ for line in (verbcode)
 endfor
 
 return this_verbs;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
 
 .
 
@@ -1379,8 +1350,6 @@ endfor
 
 return missing_verbs;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
-
 .
 
 
@@ -1405,8 +1374,6 @@ for line in (verb_code(object, verb_name))
 endfor
 
 return false;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
 
 .
 
@@ -1455,8 +1422,6 @@ endfor
 
 return this_verbs;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
-
 .
 
 
@@ -1493,8 +1458,6 @@ for verb_name in (verb_names)
 endfor
 
 return pass_verbs;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
 
 .
 
@@ -1551,8 +1514,6 @@ endfor
 
 return dynamic_verb_calls;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 17:54:38 2022 PST";
-
 .
 
 
@@ -1591,8 +1552,6 @@ for ref in (cored_references)
 endfor
 
 return valid_references;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:04 2022 PST";
 
 .
 
@@ -1645,7 +1604,7 @@ $mpm:update_object_map(object_waif, package_map["object"], package_object, depth
 
 "TODO: figure out what we want to do with packages that don't serialize ancestry and if it will work";
 
-if (maphaskey(options, "package_target_self") && options["package_target_self"])
+if (this:get_package_option("package_target_self", options) || this:get_package_option("package_dont_serialize_ancestry", options))
 
   "we are targetting ourselves here so we don't need do deal with ancestry";
 
@@ -1673,11 +1632,12 @@ $mpm:package_update_object(package_map, object_waif, depth);
 
 "handle updating the props/verbs for parent objects";
 
-if (maphaskey(options, "package_target_self") && options["package_target_self"])
+if (this:get_package_option("package_target_self", options) || this:get_package_option("package_dont_serialize_ancestry", options))
 
   "we are targetting ourselves here so we don't need do deal with ancestry";
 
 else
+
   $mpm:package_update_ancestors(package_object, package_map, object_waif, depth);
 
 endif
@@ -1692,13 +1652,11 @@ for value, key in (package_map["dependent_verb_map"])
 
 endfor
 
-this:tell_debug(depth, "Done creating package: ", $string_utils:nn(package_object));
+this:tell_debug(depth, $mpm:ansibrgreen("Done creating package: ", $string_utils:nn(package_object)));
 
 this:log_finished_object_map(object_waif);
 
 return package_object;
-
-"Last modified by Fengshui (#22664) on Wed Jan 19 22:23:41 2022 PST";
 
 .
 
@@ -1743,8 +1701,6 @@ endfor
 
 return true;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
-
 .
 
 
@@ -1757,8 +1713,6 @@ return true;
 "return an ordered list of ancestor data in form of {first_parent_obj, name}, {second_parent_obj, name} ..";
 
 {ancestor_map, depth} = args;
-
-this:tell_debug(depth, ancestor_map["parent_data"]["object"]);
 
 if (!maphaskey(ancestor_map["parent_data"], "name"))
 
@@ -1779,8 +1733,6 @@ if (maphaskey(ancestor_map["parent_data"], "parent_data"))
 endif
 
 return ancestor_data;
-
-"Last modified by Fengshui (#22664) on Wed Jan 19 22:24:10 2022 PST";
 
 .
 
@@ -1835,8 +1787,6 @@ this:tell_debug(depth, "Unable to find a closest existing ancestor for ", packag
 
 raise(E_INVIND, "unable to find a closest existing ancestor.");
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
-
 .
 
 
@@ -1857,8 +1807,6 @@ if ((!$recycler:valid(object)) || (object.name != match_name))
 endif
 
 return true;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
 
 .
 
@@ -1890,6 +1838,7 @@ endif
 ancestor_data = reverse($mpm:slice_ancestor_name_number_aliases_and_cored(package_map, depth)[1..ancestor_index_in_ancestors - 1]);
 
 "loop ancestors from lowest to highest, finally returning the top level ancestor of the object";
+
 temp_parent = ancestor;
 
 temp_depth = depth;
@@ -1905,8 +1854,6 @@ for data in (ancestor_data)
 endfor
 
 return temp_parent;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
 
 .
 
@@ -1935,8 +1882,6 @@ this:tell_debug(depth, "New object created for package: ", $string_utils:nn(obje
 
 return object;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
-
 .
 
 
@@ -1951,8 +1896,6 @@ return object;
 {message, data} = args;
 
 this.log = {@this.log, {message, data}};
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:05 2022 PST";
 
 .
 
@@ -1969,8 +1912,6 @@ this.log = {@this.log, {message, data}};
 
 this:log("updated property", {propname, {"old", old}, {"new", new}});
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
-
 .
 
 
@@ -1985,8 +1926,6 @@ this:log("updated property", {propname, {"old", old}, {"new", new}});
 {object, propname, new, info} = args;
 
 this:log("updated property", {object, propname, {"new", new}, {"info", info}});
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
 
 .
 
@@ -2003,8 +1942,6 @@ this:log("updated property", {object, propname, {"new", new}, {"info", info}});
 
 this:log("updated property permissions", {object, propname, {"old", old}, {"new", new}});
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
-
 .
 
 
@@ -2017,8 +1954,6 @@ this:log("updated property permissions", {object, propname, {"old", old}, {"new"
 {object, verb_name, owner, verb_info, verb_args} = args;
 
 this:log("verb added", {object, verb_name, owner, verb_info, verb_args});
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
 
 .
 
@@ -2033,8 +1968,6 @@ this:log("verb added", {object, verb_name, owner, verb_info, verb_args});
 
 this:log("verb code updated", {object, verb_name, old_verb_code, new_verb_code});
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
-
 .
 
 
@@ -2047,8 +1980,6 @@ this:log("verb code updated", {object, verb_name, old_verb_code, new_verb_code})
 {object, verb_name, old_args, new_args} = args;
 
 this:log("verb args updated", {object, verb_name, old_args, new_args});
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
 
 .
 
@@ -2105,11 +2036,21 @@ else
 
 endif
 
-if (cored_references)
+"never install cored references when updating MPM";
 
-  this:tell_debug(depth, "Upserting any cored references to ", $string_utils:nn(object));
+if ($mpm:is_mpm_update(package_object, package_object_name, true))
 
-  $mpm:package_object_upsert_cored_references(object, cored_references, depth + 1);
+  this:tell_debug(depth, "Skipping cored references since we are installing $mpm.");
+
+else
+
+  if (cored_references)
+
+    this:tell_debug(depth, "Upserting any cored references to ", $string_utils:nn(object));
+
+    $mpm:package_object_upsert_cored_references(object, cored_references, depth + 1);
+
+  endif
 
 endif
 
@@ -2129,8 +2070,6 @@ if (verbs)
 
 endif
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
-
 .
 
 
@@ -2139,6 +2078,7 @@ endif
 @program $mpm:build_ancestry_object_map
 
 ":update_object_map(WAIF object_waif, OBJ package_object, MAP package_map, INT depth) => NONE";
+
 "update the object map of package objects and their counterparts on this MOO";
 
 {object_waif, package_object, package_map, depth} = args;
@@ -2163,8 +2103,6 @@ endwhile
 
 return;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:56:24 2022 PST";
-
 .
 
 
@@ -2180,13 +2118,10 @@ return;
 
 this:log("finished object map", object_map_waif.data);
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
-
 .
 
 
 @verb $mpm:"package_object_upsert_cored_references" this none this
-
 @program $mpm:package_object_upsert_cored_references
 
 ":package_obgject_upsert_cored_references(OBJ object, LIST cored_references, INT depth) => NONE";
@@ -2207,7 +2142,10 @@ for ref in (cored_references)
 
       this:tell_debug(depth, "$sysobj.", ref, " new value would be ", object, " [", $string_utils:nn(object), "]");
 
-      if ($command_utils:yes_or_no("Update to point to the new object? Take care when updating cored references, as they PROBABLY exist on your moo for a reason. If you are replacing an entire utility object it is probably OK to update its cored reference, but if the cored reference you are updating is for a dependency of the package you are installing, BEWARE: we are only installing the verbs USED BY THE PACKAGE. This means if you decided to create a new instance of String Utilities as part of this package, only a few verbs are likely being installed. You should NOT update your cored reference, or you'll be getting tons of tracebacks. Instead, choose NOT to update it, and then update the code from this package that is referencing the cored reference (IE: $widget_utils) to point to the NEW OBJECT you may have created. Remember that failing to do so when needed could result in a broken package."))
+      this:tell_debug(depth, $mpm:ansiyellow("Updating cored references deserves special consideration, please read: https://github.com/sevenecks/moo-package-manager#installing-a-package if you are unsure if you should update this."));
+
+      if ($command_utils:yes_or_no("Update reference?"))
+
         this:tell_debug(depth, "Updated cored ref ", ref, " to point to ", object);
 
         this:log("updated cored ref", {ref, {"old value", $sysobj.(ref)}, {"new value", object}});
@@ -2239,8 +2177,6 @@ for ref in (cored_references)
   endif
 
 endfor
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
 
 .
 
@@ -2318,8 +2254,6 @@ for propname in (properties["property_names"])
   endif
 
 endfor
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:06 2022 PST";
 
 .
 
@@ -2432,8 +2366,6 @@ for verbname in (verbs["verb_names"])
 
 endfor
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 13:04:09 2022 PST";
-
 .
 
 
@@ -2479,8 +2411,6 @@ while (maphaskey(temp_package_map, "parent_data"))
 
 endwhile
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:07 2022 PST";
-
 .
 
 
@@ -2512,9 +2442,9 @@ endif
 
 "if that ever changes we will need to refactor this";
 
-if (maphaskey(options, "package_target_self") && options["package_target_self"])
+if (this:get_package_option("package_target_self", options))
 
-  this:tell_debug(depth, "This package is `target-self` meaning it will install its verbs and props on your object `", player, "`. Please take special care in accepting any prop or verb changes that might create issues!");
+  this:tell_debug(depth, $mpm:ansiyellow("This package is `target-self` meaning it will install its verbs and props on your object `", player, "`. Please take special care in accepting any prop or verb changes that might create issues!"));
 
   if (!$command_utils:yes_or_no("Continue?"))
 
@@ -2526,7 +2456,15 @@ if (maphaskey(options, "package_target_self") && options["package_target_self"])
 
 endif
 
-if ((!$mpm:is_mpm_update(package_object, package_object_name)) && (!$mpm:is_matching_object(package_object, package_object_name)))
+"we don't set an object when we are updating MPM, we create a fresh object always";
+
+if ($mpm:is_mpm_update(package_object, package_object_name))
+
+  return $nothing;
+
+endif
+
+if (!$mpm:is_matching_object(package_object, package_object_name))
 
   this:tell_debug(depth, "Object# mismatch, object may exist on this MOO with a different object number. Checking corified references...");
 
@@ -2545,7 +2483,6 @@ if ((!$mpm:is_mpm_update(package_object, package_object_name)) && (!$mpm:is_matc
       if ($mpm:is_matching_object(temp_ref, package_object_name))
 
         this:tell_debug(depth, "Found an object that matches our package via corified reference: ", $string_utils:nn(temp_ref));
-
         if ($command_utils:yes_or_no("Use this object?"))
 
           temp_package_object = temp_ref;
@@ -2573,9 +2510,11 @@ if ((!$mpm:is_mpm_update(package_object, package_object_name)) && (!$mpm:is_matc
   else
 
     this:tell_debug(depth, "No matching corified references found. Object may not exist on this MOO.");
+
     if (!$command_utils:yes_or_no("Attempt creation of a new object for this object from the parent(s)?"))
 
       this:tell_debug(depth, "Aborted package creation. No changes were made.");
+
       raise(E_NONE, "Package creation aborted.");
 
     endif
@@ -2603,8 +2542,6 @@ else
 endif
 
 return package_object;
-
-"Last modified by Fengshui (#22664) on Wed Jan 19 22:12:35 2022 PST";
 
 .
 
@@ -2642,6 +2579,7 @@ endfor
 this:tell_debug(depth, "Scanning for closest valid ancestors on this MOO...");
 
 closest_ancestor = $mpm:find_closest_existing_ancestor(package_map, depth);
+
 this:tell_debug(depth, "Closest ancestor found is ancestor '", closest_ancestor[1], "' -> ", $string_utils:nn(closest_ancestor[2]));
 
 if ($command_utils:yes_or_no(tostr("Do you want to use this closest ancestor and create the descendent tree from the package (YES) or provide your own parent object (must be this MOOs instance of ", ancestor_data[1][1], " -> ", ancestor_data[1][2], ") to attempt to use (NO)?")))
@@ -2698,8 +2636,6 @@ package_object = this:package_create_object(parent, package_map["name"], package
 
 return package_object;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:53:22 2022 PST";
-
 .
 
 
@@ -2731,8 +2667,6 @@ endif
 
 object_waif.data[packaged_object] = this_moo_object;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
-
 .
 
 
@@ -2741,7 +2675,9 @@ object_waif.data[packaged_object] = this_moo_object;
 @program $mpm:package_rewire_ancestors
 
 ":package_rewire_ancestors(OBJ package_object, MAP package_map, WAIF object_waif, INT depth) => NONE";
+
 "this verb will attempt to let the user 'rewire' the ancestors such that if";
+
 "a moo has a similar heirarchy but not exactly the same, the user can specify";
 
 "a mapping from the package objects needed to the MOO objects that exist on";
@@ -2821,7 +2757,6 @@ if (length(ancestors) < length(package_ancestors))
   endfor
 
   this:tell_debug(depth, "The heirarchy on your MOO is: ");
-
   temp_depth = depth + 1;
 
   for ancestor in (ancestors)
@@ -2900,8 +2835,6 @@ endfor
 
 this:tell_debug(depth, "Finished rewiring ancestry for ", package_object);
 
-"Last modified by Fengshui (#22664) on Tue Jan 18 21:31:31 2022 PST";
-
 .
 
 
@@ -2926,8 +2859,6 @@ else
   return [];
 
 endif
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
 
 .
 
@@ -2965,18 +2896,18 @@ while (verbs)
   if (!result)
 
     break;
+
   endif
 
   index = toint(result);
 
   included_verbs = {@included_verbs, verbs[index]};
+
   verbs = listdelete(verbs, index);
 
 endwhile
 
 return included_verbs;
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
 
 .
 
@@ -2995,7 +2926,27 @@ existing_data = `this.installed_packages ! E_PROPNF => []';
 
 new_data = existing_data;
 
-data_to_store = ["package_name" -> package_map["package_name"], "package_version" -> package_map["package_version"], "package_hash" -> package_map["package_hash"], "package_description" -> package_map["package_description"], "package_installed_at" -> time(), "package_installed_by" -> player];
+data_to_store = ["package_url" -> package_map["package_url"], "package_name" -> package_map["package_name"], "package_version" -> package_map["package_version"], "package_hash" -> package_map["package_hash"], "package_description" -> package_map["package_description"], "package_installed_at" -> time(), "package_installed_by" -> player];
+
+"@DEPRECATED When we no longer have packages without package_ids, move this into main list";
+
+if (maphaskey(package_map, "package_id"))
+
+  data_to_store["package_id"] = package_map["package_id"];
+
+endif
+
+if (maphaskey(package_map, "package_changelog"))
+
+  data_to_store["package_changelog"] = package_map["package_changelog"];
+
+endif
+
+if (maphaskey(package_map, "mpm_version"))
+
+  data_to_store["mpm_version"] = package_map["mpm_version"];
+
+endif
 
 if (maphaskey(new_data, origin_object))
 
@@ -3019,8 +2970,6 @@ else
 
 endif
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:08 2022 PST";
-
 .
 
 
@@ -3038,12 +2987,17 @@ existing_data = `this.created_packages ! E_PROPNF => []';
 
 new_data = existing_data;
 
-data_to_store = ["package_name" -> package_map["package_name"], "package_version" -> package_map["package_version"], "package_hash" -> package_map["package_hash"], "package_description" -> package_map["package_description"], "package_created_at" -> package_map["package_created_at"], "package_created_by" -> package_map["package_created_by"], "package_url" -> package_map["package_url"], "package_changelog" -> package_map["package_changelog"], "package_post_install_note" -> package_map["package_post_install_note"], "mpm_version" -> package_map["mpm_version"]];
+data_to_store = ["package_name" -> package_map["package_name"], "package_version" -> package_map["package_version"], "package_hash" -> package_map["package_hash"], "package_description" -> package_map["package_description"], "package_created_at" -> package_map["package_created_at"], "package_created_by" -> package_map["package_created_by"], "package_url" -> package_map["package_url"], "package_changelog" -> package_map["package_changelog"], "package_post_install_note" -> package_map["package_post_install_note"], "mpm_version" -> package_map["mpm_version"], "package_id" -> package_map["package_id"]];
+
+if (maphaskey(package_map, "package_changelog"))
+
+  data_to_store["package_changelog"] = package_map["package_changelog"];
+
+endif
 
 if (maphaskey(new_data, origin_object))
 
   "we've installed a package on this origin object previously";
-
   new_data[origin_object] = {@new_data[origin_object], data_to_store};
 
 else
@@ -3062,8 +3016,6 @@ else
 
 endif
 
-"Last modified by Fengshui (#22664) on Tue Jan 18 17:14:13 2022 PST";
-
 .
 
 
@@ -3077,11 +3029,11 @@ endif
 
 {package_object, ?depth = 0} = args;
 
-this:tell_debug(depth, "Creating package for: ", $string_utils:nn(package_object));
+this:tell_debug(depth, $mpm:ansibrwhite("Creating package for: "), $string_utils:nn(package_object));
 
 this:tell_debug(depth, "");
 
-this:tell_debug(depth, "You will be prompted to provide the following information: ");
+this:tell_debug(depth, $mpm:ansiyellow("You will be prompted to provide the following information: "));
 
 this:tell_debug(depth, "Package Name, Package Version, Package Description, (for updates) Package Changelog, (optional) Post Install Note, (optional) URL where package will be hosted.");
 
@@ -3091,7 +3043,7 @@ existing_package_data = $mpm:find_existing_package_data(package_object);
 
 created_package_count = length(existing_package_data);
 
-this:tell_debug(depth, "There are ", created_package_count, " packages previously created from this origin object.");
+this:tell_debug(depth, "There are ", $mpm:ansibrgreen(created_package_count), " packages previously created from this origin object.");
 
 new_package_data = [];
 
@@ -3101,7 +3053,9 @@ if (existing_package_data)
 
   i = 0;
 
-  this:tell_debug(depth, $string_utils:left("#", 4), $string_utils:left("PACKAGE NAME @ VERSION", 50), $string_utils:left("CREATED DATE", 30), $string_utils:left("CREATED BY", 20));
+  this:tell_debug(depth, "");
+
+  this:tell_debug(depth, $mpm:ansibrwhite($string_utils:left("#", 4), $string_utils:left("PACKAGE NAME @ VERSION", 50), $string_utils:left("CREATED DATE", 30), $string_utils:left("CREATED BY", 20)));
 
   for package_data in (existing_package_data)
 
@@ -3111,9 +3065,11 @@ if (existing_package_data)
 
   endfor
 
+  this:tell_debug(depth, "");
+
   if ($command_utils:yes_or_no("Is your package a new version of one of the packages above?"))
 
-    index = $command_utils:read("Enter the # that this package is a new version of.");
+    index = $command_utils:read("the # that this package is a new version of");
 
     if ((((!index) || (!(index = toint(index)))) || (index < 0)) || (index > created_package_count))
 
@@ -3127,7 +3083,7 @@ if (existing_package_data)
 
     new_package_data = existing_package_data[index];
 
-    this:tell_debug(depth, "Using existing package data...");
+    this:tell_debug(depth, $mpm:ansibrgreen("Using existing package data..."));
 
   endif
 
@@ -3135,12 +3091,14 @@ endif
 
 if (maphaskey(new_package_data, "package_name"))
 
-  this:tell_debug(depth, "Using Existing Package Name: ", new_package_data["package_name"]);
+  this:tell_debug(depth, $mpm:ansibryellow("Using Existing Package Name: "), new_package_data["package_name"]);
 
 else
-  name = $command_utils:read("Enter name for package:");
+
+  name = $command_utils:read("name for package");
 
   if (!name)
+
     this:tell_debug(depth, "No package name provided. Aborting.");
 
     raise(E_ARGS, "Invalid package name.");
@@ -3155,17 +3113,17 @@ if (!maphaskey(new_package_data, "package_id"))
 
   "this will create a unique package_id for this package that will carry over in each version";
 
-  new_package_data["package_id"] = string_hash(tostr(name, ftime()), "MD5");
+  new_package_data["package_id"] = string_hash(tostr(new_package_data["package_name"], ftime()), "MD5");
 
 endif
 
 if (maphaskey(new_package_data, "package_version"))
 
-  this:tell_debug(depth, "Previous Version Number: ", new_package_data["package_version"]);
+  this:tell_debug(depth, $mpm:ansibryellow("Previous Version Number: "), new_package_data["package_version"]);
 
 endif
 
-version_number = tofloat($command_utils:read("Version Number (must be a positive non-zero float ie: 1.0)?"));
+version_number = tofloat($command_utils:read("version number (must be a positive non-zero float ie: 1.0)"));
 
 if ((!version_number) || (version_number < 0.0))
 
@@ -3179,7 +3137,7 @@ new_package_data["package_version"] = version_number;
 
 if (maphaskey(new_package_data, "package_description"))
 
-  this:tell_debug(depth, "Package Description: ", new_package_data["package_description"]);
+  this:tell_debug(depth, $mpm:ansibryellow("Package Description: "), new_package_data["package_description"]);
 
   if (!$command_utils:yes_or_no("Use existing package description?"))
 
@@ -3199,7 +3157,7 @@ if (maphaskey(new_package_data, "package_description"))
 
 else
 
-  description = $command_utils:read("Enter description for package:");
+  description = $command_utils:read("description for package");
 
   if (!description)
 
@@ -3215,7 +3173,9 @@ endif
 
 if (updating_package)
 
-  changelog = $command_utils:read("Enter a brief changelog of what's different in this package update:");
+  this:tell_debug(depth, $mpm:ansibryellow("Enter a brief changelog of what's different in this package update:"));
+
+  changelog = $command_utils:read("a brief changelog");
 
   if (!changelog)
 
@@ -3235,11 +3195,13 @@ endif
 
 if (maphaskey(new_package_data, "package_post_install_note") && new_package_data["package_post_install_note"])
 
-  player:tell("Previous Post Install Note: ", new_package_data["package_post_install_note"]);
+  player:tell($mpm:ansibryellow("Previous Post Install Note: "), new_package_data["package_post_install_note"]);
 
 endif
 
-post_install_note = $command_utils:read("(optional) Enter a note that will be displayed after package installation:");
+this:tell_debug(depth, $mpm:ansibrgreen("(optional) "), $mpm:ansibryellow("Enter a note that will be displayed after package installation"));
+
+post_install_note = $command_utils:read("post install note");
 
 if (!post_install_note)
 
@@ -3251,11 +3213,11 @@ new_package_data["package_post_install_note"] = post_install_note;
 
 if (maphaskey(new_package_data, "package_url") && new_package_data["package_url"])
 
-  player:tell("Previous Package URL (you should really have a new URL for each version): ", new_package_data["package_url"]);
+  player:tell($mpm:ansibryellow("Previous Package URL (you should really have a new URL for each version): "), new_package_data["package_url"]);
 
 endif
 
-this:tell_debug(depth, "(optional) Enter the URL where you will be hosting this package. Just hit enter to leave this blank. You can update it later.");
+this:tell_debug(depth, $mpm:ansibrgreen("(optional) "), $mpm:ansibryellow("Enter the URL where you will be hosting this package. Just hit enter to leave this blank. You can update it later."));
 
 if (package_url = $command_utils:read("package url?"))
 
@@ -3275,14 +3237,13 @@ new_package_data["mpm_version"] = this.package_manager_version;
 
 return new_package_data;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 20:41:05 2022 PST";
-
 .
 
 
 @verb $mpm:"parse_command_arguments" this none this
 
 @program $mpm:parse_command_arguments
+
 ":parse_command_arguments(STR arguments, ?INT depth = 0) => MAP";
 
 "this will parse the command arguments passed into @make-package and return";
@@ -3334,6 +3295,16 @@ if (match(arguments, "--select-verbs"))
 else
 
   options["select_verbs"] = false;
+
+endif
+
+if (match(arguments, "--strip-trailing-comments"))
+
+  options["strip_trailing_comments"] = true;
+
+else
+
+  options["strip_trailing_comments"] = false;
 
 endif
 
@@ -3495,7 +3466,9 @@ if (result = match(arguments, "--post-install-verb="))
 
   "this determines verbs we want to serialize for this package, if provided";
 
-  verbname = arguments[result[2] + 1..$];
+  temp = arguments[result[2] + 1..$];
+
+  verbname = explode(temp, " ")[1];
 
   if (!$object_utils:defines_verb(package_object, verbname))
 
@@ -3503,7 +3476,7 @@ if (result = match(arguments, "--post-install-verb="))
 
   endif
 
-  options["post_install_verb"] = verb_name;
+  options["post_install_verb"] = verbname;
 
 else
 
@@ -3791,8 +3764,6 @@ endif
 
 return options;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 17:35:21 2022 PST";
-
 .
 
 
@@ -3930,8 +3901,6 @@ this:tell_debug(depth, "Dry Run: ", options["dry_run"]);
 
 return $command_utils:yes_or_no("Create package with these options?");
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 19:52:03 2022 PST";
-
 .
 
 
@@ -3969,8 +3938,6 @@ endfor
 
 return installed_packages;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 19:26:19 2022 PST";
-
 .
 
 
@@ -3992,8 +3959,6 @@ for package_data in (packages)
 
 endfor
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 12:27:09 2022 PST";
-
 .
 
 
@@ -4007,37 +3972,35 @@ endfor
 
 {package_map, depth} = args;
 
-this:tell_debug(depth, "Package Name: ", package_map["package_name"]);
+this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Name: ", 21)), package_map["package_name"]);
 
-this:tell_debug(depth, "Package Id: ", `package_map["package_id"] ! E_RANGE => "NONE"');
+this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Id: ", 21)), `package_map["package_id"] ! E_RANGE => "NONE"');
 
-this:tell_debug(depth, "Package Version: ", package_map["package_version"]);
+this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Version: ", 21)), package_map["package_version"]);
 
-this:tell_debug(depth, "Package Created At: ", ctime(toint(package_map["package_created_at"])));
+this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Created At: ", 21)), ctime(toint(package_map["package_created_at"])));
 
-this:tell_debug(depth, "Package Created By: ", package_map["package_created_by"]);
+this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Created By: ", 21)), package_map["package_created_by"]);
 
-this:tell_debug(depth, "Package Description: ", package_map["package_description"]);
+this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Description: ", 21)), package_map["package_description"]);
 
 if (maphaskey(package_map, "package_hash") && package_map["package_hash"])
 
-  this:tell_debug(depth, "Package Hash: ", package_map["package_hash"]);
+  this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Hash: ", 21)), package_map["package_hash"]);
 
 endif
 
 if (maphaskey(package_map, "package_changelog") && package_map["package_changelog"])
 
-  this:tell_debug(depth, "Package Changelog: ", package_map["package_changelog"]);
+  this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package Changelog: ", 21)), package_map["package_changelog"]);
 
 endif
 
 if (maphaskey(package_map, "package_url") && package_map["package_url"])
 
-  this:tell_debug(depth, "Package URL: ", package_map["package_url"]);
+  this:tell_debug(depth, this:ansibrwhite($string_utils:left("Package URL: ", 21)), package_map["package_url"]);
 
 endif
-
-"Last modified by Fengshui (#22664) on Wed Jan 19 20:55:46 2022 PST";
 
 .
 
@@ -4046,51 +4009,73 @@ endif
 
 @program $mpm:display_package_data
 
-":display_package_data(MAP package_data, INT depth) => NONE";
+":display_package_data(MAP package_data, INT depth, ?BOOL interactive = false) => NONE";
 
 "display data about this level of the package then call descendent levels";
 
-{package_data, depth} = args;
+{package_data, depth, ?interactive = false} = args;
 
 if (package_data["object"] == $nothing)
 
-  this:tell_debug(depth, "Name & Number: $nothing (#-1)");
+  this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Name & Number: ", 15)), "$nothing (#-1)");
 
   return;
 
 endif
 
-this:tell_debug(depth, "Name & Number: ", package_data["name"], " (", package_data["object"], ")");
+this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Name & Number: ", 15)), package_data["name"], " (", package_data["object"], ")");
 
-this:tell_debug(depth, "Cored as: ", $string_utils:from_list(package_data["corified_references"], ", "));
-
-if (maphaskey(package_data, "parent_data"))
-
-  this:tell_debug(depth, "Parents:");
-
-  $mpm:display_package_data(package_data["parent_data"], depth + 1);
-
-else
-
-  this:tell_debug(depth, "Parents: $nothing");
-
-endif
+this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Cored as: ", 15)), $string_utils:from_list(package_data["corified_references"], ", "));
 
 if (maphaskey(package_data, "properties"))
 
-  this:tell_debug(depth, "Props: ", $string_utils:from_list(package_data["properties"]["property_names"], ", "));
+  if (package_data["properties"]["property_names"])
+
+    this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Props: ", 15)), $string_utils:from_list(package_data["properties"]["property_names"], ", "));
+
+    if ($command_utils:yes_or_no("Display property data?"))
+
+      $mpm:display_property_data(package_data["properties"]);
+
+    endif
+
+  endif
 
 endif
 
 if (maphaskey(package_data, "verbs"))
 
-  this:tell_debug(depth, "Verbs: ", $string_utils:from_list(package_data["verbs"]["verb_names"], ", "));
+  if (package_data["verbs"]["verb_names"])
+
+    this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Verbs: ", 15)), $string_utils:from_list(package_data["verbs"]["verb_names"], ", "));
+
+    if ($command_utils:yes_or_no("Display verb code?"))
+
+      $mpm:display_verb_data(package_data["verbs"]);
+
+    endif
+
+  endif
 
 endif
 
-if (maphaskey(package_data, "verb_names"))
+if (maphaskey(package_data, "parent_data"))
 
-  this:tell_debug(depth, "Verbs: ", $string_utils:from_list(package_data["verb_names"], ", "));
+  this:tell_debug(depth, $mpm:ansicyan("Parents: "));
+
+  $mpm:display_package_data(package_data["parent_data"], depth + 1);
+
+else
+
+  this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Parents: ", 15), "$nothing"));
+
+endif
+
+"TODO: do we need this?";
+
+if (maphaskey(package_data, "verb_names") && package_data["verb_names"])
+
+  this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Verbs: ", 15)), $string_utils:from_list(package_data["verb_names"], ", "));
 
 endif
 
@@ -4098,15 +4083,13 @@ if (maphaskey(package_data, "dependent_verb_map"))
 
   for value, key in (package_data["dependent_verb_map"])
 
-    this:tell_debug(depth, "Relies on:");
+    this:tell_debug(depth, $mpm:ansicyan($string_utils:left("Relies on:", 15)));
 
     $mpm:display_package_data(value, depth + 1);
 
   endfor
 
 endif
-
-"Last modified by Fengshui (#22664) on Wed Jan 19 17:47:55 2022 PST";
 
 .
 
@@ -4151,13 +4134,10 @@ endwhile
 
 return parts;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 19:03:28 2022 PST";
-
 .
 
 
 @verb $mpm:"dump_package_headers" this none this
-
 @program $mpm:dump_package_headers
 
 ":dump_package_headers() => NONE";
@@ -4175,12 +4155,12 @@ for package_list, OBJ in (this.created_packages)
   for package in (package_list)
 
     headers = {@headers, tostr(package["package_name"], divider, package["package_version"], divider, package["package_hash"], divider, package["package_description"], divider, package["package_created_at"], divider, package["package_created_by"], divider, package["package_url"], divider, package["package_changelog"])};
+
   endfor
+
 endfor
 
 player:tell_lines(headers);
-
-"Last modified by Fengshui (#22664) on Mon Jan 17 20:27:31 2022 PST";
 
 .
 
@@ -4227,8 +4207,6 @@ endfor
 
 return available_packages;
 
-"Last modified by Fengshui (#22664) on Mon Jan 17 20:27:35 2022 PST";
-
 .
 
 
@@ -4251,8 +4229,6 @@ if (maphaskey(this.registered_repositories, name))
 endif
 
 this.registered_repositories[name] = url;
-
-"Last modified by Fengshui (#22664) on Tue Jan 18 15:53:06 2022 PST";
 
 .
 
@@ -4301,8 +4277,6 @@ else
 
 endif
 
-"Last modified by Fengshui (#22664) on Tue Jan 18 17:55:34 2022 PST";
-
 .
 
 
@@ -4310,17 +4284,19 @@ endif
 
 @program $mpm:is_mpm_update
 
-":is_mpm_update(OBJ package_object, STR package_name) => BOOL";
+":is_mpm_update(OBJ package_object, STR package_name, ?BOOL silent = false) => BOOL";
 
 "checks if we are updating the $mpm itself, and if it is, forces creation of a new object";
 
-{package_object, package_name} = args;
+"if silent is true then we just return true or false without any prompts";
+
+{package_object, package_name, ?silent = false} = args;
 
 if (package_name == this.name)
 
-  if (!$command_utils:yes_or_no("We have detected that you are updating the MOO Package Manager itself. We can't do an in-place update, since who knows what may have changed. This means we will be creating a new object. DO NOT UPDATE CORED REFERENCES TO $mpm itself, even if prompted. Wait until the package is finished installing and then update $sysobj.mpm to point to the new package manager. Got it?"))
+  if (!silent)
 
-    if (!$command_utils:yes_or_no("Select (YES) to continue installing. You are about to abort (NO), unless you agree to not update the $mpm cored references during install..."))
+    if (!$command_utils:yes_or_no("We have detected that you are updating the MOO Package Manager itself. We can't do an in-place update, since who knows what may have changed. This means we will be creating a new object. Continue?"))
 
       raise(E_ARGS, "unable to update MOO package manager because user aborted.");
 
@@ -4335,8 +4311,6 @@ else
   return false;
 
 endif
-
-"Last modified by Fengshui (#22664) on Tue Jan 18 18:29:24 2022 PST";
 
 .
 
@@ -4395,6 +4369,583 @@ endfor
 
 return dynamic_prop_calls;
 
-"Last modified by Fengshui (#22664) on Wed Jan 19 18:11:47 2022 PST";
+.
 
+
+@verb $mpm:"get_package_option" this none this
+
+@program $mpm:get_package_option
+
+":get_package_options(STR option_name, MAP options) => MIXED";
+
+"if a package has an option return it, otherwise return false";
+
+{option_name, options} = args;
+
+if (maphaskey(options, option_name))
+
+  return options[option_name];
+
+endif
+
+"@DEPRECATED remove at version 2.0";
+
+if (`option_name[1..8] == "package_" ! E_RANGE => 0')
+
+  option_name = `option_name[9..$] ! E_RANGE => 0';
+
+  if (maphaskey(options, option_name))
+
+    return options[option_name];
+
+  endif
+
+endif
+
+return false;
+
+.
+
+
+@verb $mpm:"version" this none this
+
+@program $mpm:version
+
+":version() => INT";
+
+"return the version information for this instance of MPM";
+
+return this.package_manager_version;
+
+.
+
+
+@verb $mpm:"display_property_data" this none this
+
+@program $mpm:display_property_data
+
+":display_property_data(MAP property_data) => NONE";
+
+{property_data} = args;
+
+for propname in (property_data["property_names"])
+
+  player:tell(this:ansibrwhite("Name: "), propname);
+
+  player:tell(this:ansibrwhite("Perms: "), toliteral(property_data["property_data"][propname]["info"][2]));
+
+  player:tell(this:ansibrwhite("Value: "), toliteral(property_data["property_data"][propname]["value"]));
+
+endfor
+
+.
+
+
+@verb $mpm:"display_verb_data" this none this
+
+@program $mpm:display_verb_data
+
+":display_verb_data(MAP property_data) => NONE";
+
+{verb_data} = args;
+
+player:tell("");
+
+for verbname in (verb_data["verb_names"])
+
+  player:tell($mpm:ansibrwhite(":", verbname, " ", $string_utils:from_list(verb_data["verb_data"][verbname]["args"], " "), " ", verb_data["verb_data"][verbname]["info"][2], " [Wizard: ", verb_data["verb_data"][verbname]["wizard"] ? true | false, "]"));
+
+  player:tell_lines(verb_data["verb_data"][verbname]["code"]);
+
+  player:tell("");
+
+endfor
+
+.
+
+
+@verb $mpm:"ansi*" this none this
+
+@program $mpm:ansi
+
+":ansi*(STR text, ?STR text, ...) => STR";
+
+"this verb with ansi-ify a string based on what type of ansi utility is installed";
+
+"on the MOO running $mpm";
+
+text = tostr(@args);
+
+color = verb[5..$];
+
+if (($object_utils:has_property($sysobj, "ansi") && (typeof($ansi) == OBJ)) && $object_utils:defines_verb($ansi, "red"))
+
+  "good bet we are using Sindome style ANSI";
+
+  return $ansi:(color)(text);
+
+elseif (($object_utils:has_property($sysobj, "ansi_utils") && (typeof($ansi_utils) == OBJ)) && $object_utils:defines_verb($ansi_utils, "add_noansi"))
+
+  "good bet we are using DarkOwl";
+
+  "let's handle brights";
+
+  "TODO: unbold isn't working -- get help";
+
+  bold = "";
+
+  unbold = "";
+
+  if (color[1..2] == "br")
+
+    color = color[3..$];
+
+    "TODO: we would do bold here if it was working";
+
+  elseif (`color[1..5] == "strip" ! E_RANGE => 0')
+
+    return $ansi_utils:strip_ansi(text);
+
+  endif
+
+  return tostr(bold, "[", color, "]", text, unbold, "[normal]");
+
+else
+
+  return text;
+
+endif
+
+.
+
+
+@verb $mpm:"display_package_options" this none this
+
+@program $mpm:display_package_options
+
+":display_package_options(MAP package_map, INT depth) => NONE";
+
+"display the options the package was created with";
+
+{package_map, depth} = args;
+
+map_keys = sort(mapkeys(`package_map["package_options"] ! E_RANGE => []'));
+
+for key in (map_keys)
+
+  "only display true keys";
+
+  if (package_map["package_options"][key])
+
+    player:tell($string_utils:space(21), $mpm:ansibryellow($string_utils:left(key, 29)), toliteral(package_map["package_options"][key]));
+
+  endif
+
+endfor
+
+.
+
+
+@verb $mpm:"manage_packages" this none this
+
+@program $mpm:manage_packages
+
+":manage_packages() => NONE";
+
+"allows you to manage your installed and created packages";
+
+while (1)
+
+  package_options = {$mpm.installed_packages, $mpm.created_packages};
+
+  this:tell_debug(0, $mpm:ansibrwhite("Manage Packages"));
+
+  this:tell_debug(0, "");
+
+  this:tell_debug(0, "1. Installed Packages");
+
+  this:tell_debug(0, "2. Created Packages");
+
+  this:tell_debug(0, "3. Exit");
+
+  selection = toint($command_utils:read("a number for your selection"));
+
+  if (selection == 3)
+
+    return this:tell_debug(0, "Exiting.");
+
+  endif
+
+  if (!`packages = package_options[selection] ! E_RANGE => 0')
+
+    return this:tell_debug(0, "Invalid selection. Aborting.");
+
+  endif
+
+  keys = mapkeys(packages);
+
+  i = 0;
+
+  for key in (keys)
+
+    i = i + 1;
+
+    this:tell_debug(0, i, ": ", key);
+
+  endfor
+
+  key_index = toint($command_utils:read("a number for your selection"));
+
+  if (`selected_key = keys[key_index] ! E_RANGE => 0')
+
+    return this:tell_debug(0, "Invalid selection. Aborting.");
+
+  endif
+
+  selected_packages = packages[selected_key];
+
+  if (selection == 1)
+
+    "installed packages";
+
+    i = 0;
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("#", 3), $string_utils:left("PACKAGE NAME @ VERSION", 40), $string_utils:left("INSTALLED BY", 20), $string_utils:left("INSTALLED DATE", 20)));
+
+    for package in (selected_packages)
+
+      i = i + 1;
+
+      this:tell_debug(0, i, ": ", $string_utils:left(tostr(package["package_name"], " @ ", package["package_version"]), 40), $string_utils:left(package["package_installed_by"], 20), $string_utils:left(ctime(package["package_installed_at"]), 20));
+
+    endfor
+
+    package_index = toint($command_utils:read("a number for your selection"));
+
+    if (!`package = selected_packages[package_index] ! E_RANGE => 0')
+
+      return this:tell_debug(0, "Invalid selection. Aborting.");
+
+    endif
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Name: ", 21)), package["package_name"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Package Version: ", 21)), package["package_version"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Package Id: ", 21)), maphaskey(package, "package_id") ? package["package_id"] | "None");
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Hash: ", 21)), package["package_hash"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Installed At: ", 21)), ctime(package["package_installed_at"]));
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Installed By: ", 21)), package["package_installed_by"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Description: ", 21)), package["package_description"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Changelog: ", 21)), maphaskey(package, "package_changelog") ? package["package_changelog"] | "None");
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Post Install Note: ", 21)), maphaskey(package, "package_post_install_note") ? package["package_post_install_note"] | "None");
+
+    this:tell_debug(0, "");
+
+    this:tell_debug(0, "(", $mpm:ansired("R"), ")emove package (", $mpm:ansired("M"), ")ain menu");
+
+    choice_selection = $command_utils:read("a selection");
+
+    if (choice_selection == "R")
+
+      this:tell_debug(0, $mpm:ansiyellow("Removing the package will delete it entirely from $mpm.installed_packages. It will NOT actually delete the package from your MOO."));
+
+      if (!$command_utils:yes_or_no("Remove this package?"))
+
+        return this:tell_debug(0, "Aborted.");
+
+      endif
+
+      $mpm.installed_packages[selected_key] = listdelete(packages[selected_key], package_index);
+
+      if (!$mpm.installed_packages[selected_key])
+
+        $mpm.installed_packages = mapdelete($mpm.installed_packages, selected_key);
+
+      endif
+
+      this:tell_debug("Package removed.");
+
+    else
+
+      this:tell_debug(0, "Returning to Main Menu.");
+
+    endif
+
+  elseif (selection == 2)
+
+    "created packages";
+
+    i = 0;
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("#", 3), $string_utils:left("PACKAGE NAME @ VERSION", 40), $string_utils:left("STATUS", 11), $string_utils:left("CREATED BY", 20), $string_utils:left("CREATE DATE", 20)));
+
+    for package in (selected_packages)
+
+      i = i + 1;
+
+      status_string = (maphaskey(package, "deprecated") && (package["deprecated"] == true)) ? $mpm:ansiyellow("DEPRECATED") | $mpm:ansigreen("LIVE");
+
+      this:tell_debug(0, i, ": ", $string_utils:left(tostr(package["package_name"], " @ ", package["package_version"]), 40), $string_utils:left(status_string, 11), $string_utils:left(package["package_created_by"], 20), $string_utils:left(ctime(package["package_created_at"]), 20));
+
+    endfor
+
+    package_index = toint($command_utils:read("a number for your selection"));
+
+    if (!`package = selected_packages[package_index] ! E_RANGE => 0')
+
+      return this:tell_debug(0, "Invalid selection. Aborting.");
+
+    endif
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Name: ", 21)), package["package_name"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Package Version: ", 21)), package["package_version"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Package Id: ", 21)), maphaskey(package, "package_id") ? package["package_id"] | "None");
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Hash: ", 21)), package["package_hash"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Created At: ", 21)), ctime(package["package_created_at"]));
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Created By: ", 21)), package["package_created_by"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Package URL: ", 21)), package["package_url"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("MPM Version: ", 21)), package["mpm_version"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Description: ", 21)), package["package_description"]);
+
+    this:tell_debug(0, $mpm:ansibrwhite($string_utils:left("Post Install Note: ", 21)), package["package_post_install_note"]);
+
+    this:tell_debug(0, "");
+
+    this:tell_debug(0, "(", $mpm:ansired("R"), ")emove package (", $mpm:ansired("D"), ")eprecate package (", $mpm:ansired("M"), ")ain menu");
+
+    choice_selection = $command_utils:read("a selection");
+
+    if (choice_selection == "R")
+
+      this:tell_debug(0, $mpm:ansiyellow("Removing the package will delete it entirely from $mpm.created_packages. Typically you would only need to do this if you made a mistake during package creation. If you don't want it in dumped with your package headers, deprecate it instead."));
+
+      if (!$command_utils:yes_or_no("Remove this package entirely?"))
+
+        return this:tell_debug(0, "Aborted.");
+
+      endif
+
+      $mpm.created_packages[selected_key] = listdelete(packages[selected_key], package_index);
+
+      if (!$mpm.created_packages[selected_key])
+
+        $mpm.created_packages = mapdelete($mpm.created_packages, selected_key);
+
+      endif
+
+      this:tell_debug("Package removed.");
+
+    elseif (choice_selection == "D")
+
+      this:tell_debug(0, $mpm:ansiyellow("Deprecating the package will cause it to not be included when you $mpm:dump_packae_headers(). This is useful for when you have new version(s) of a package and don't want to advertise the old version."));
+
+      if (!$command_utils:yes_or_no("Deprecate this package?"))
+
+        return this:tell_debug(0, "Aborted.");
+
+      endif
+
+      $mpm.created_packages[selected_key][package_index]["deprecated"] = true;
+
+      this:tell_debug(0, "Package Deprecated.");
+
+    else
+
+      this:tell_debug(0, "Returning to Main Menu.");
+
+    endif
+
+  endif
+
+endwhile
+
+.
+
+
+@verb $mpm:"handle_post_install" this none this
+
+@program $mpm:handle_post_install
+
+":handle_post_install() => NONE";
+
+"this verb handles post install tasks for upgrading $mpm";
+
+this:tell_debug(0, $mpm:ansibrgreen("Welcome to version, ", $mpm:version(), " of MPM! We've got a bit of housekeeping to do now that the installation is complete."));
+
+if ($command_utils:yes_or_no("(recommended) Would you like to copy over $mpm.created_packages to the new MPM Object?"))
+
+  this.created_packages = $mpm.created_packages;
+
+  this:tell_debug(0, "$mpm.created_packages copied!");
+
+else
+
+  this:tell_debug(0, "Consider evaling ;", this, ".created_packages = $mpm.created_packages");
+
+endif
+
+if ($command_utils:yes_or_no("(recommended) Would you like to copy over $mpm.installed_packages to the new MPM Object?"))
+
+  this.installed_packages = $mpm.installed_packages;
+
+  this:tell_debug(0, "$mpm.installed_packages copied!");
+
+else
+
+  this:tell_debug(0, "Consider evaling ;", this, ".installed_packages = $mpm.installed_packages");
+
+endif
+
+if ($command_utils:yes_or_no("(recommended) Would you like to copy over $mpm.log to the new MPM Object?"))
+
+  this.log = $mpm.log;
+
+  this:tell_debug(0, "$mpm.log copied!");
+
+else
+
+  this:tell_debug(0, "Consider evaling ;", this, ".log = $mpm.log");
+
+endif
+
+old_mpm = $mpm;
+
+if ($command_utils:yes_or_no("(recommended) Would you like to update the cored reference `$mpm` to this object?"))
+
+  $sysobj.mpm = this;
+
+  this:tell_debug(0, "$mpm updated to ", this);
+
+else
+
+  this:tell_debug(0, "Consider evaling ;$mpm = ", this);
+
+endif
+
+this:tell_debug(0, $mpm:ansibrgreen("Congratulations! MPM has been fully upgraded. You can @recycle ", old_mpm, " when you are confident you do not need it anymore. We recommend checking Slither's MOO Packages for an updated MOO Package Manager Wizard Verbs package as your next step."));
+
+.
+
+
+@verb $mpm:"display_encoded_package" this none this
+
+@program $mpm:display_encoded_package
+
+":display_encoded_package() => NONE";
+
+"print the encoded package to the screen so it can be used elsewhere";
+
+player:tell("______________ Copy below ______________");
+
+data = $mpm.last_created_package_encoded;
+
+length = length($mpm.last_created_package_encoded);
+
+if (length <= 100000)
+
+  notify(player, $mpm.last_created_package_encoded);
+
+elseif (length <= 200000)
+
+  notify(player, $mpm.last_created_package_encoded[1..100000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[100001..$], 0, 0);
+
+elseif (length <= 300000)
+
+  notify(player, $mpm.last_created_package_encoded[1..100000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[100001..200000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[200001..$], 0, 0);
+
+elseif (length <= 400000)
+
+  notify(player, $mpm.last_created_package_encoded[1..100000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[100001..200000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[200001..300000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[300001..$], 0, 0);
+
+elseif (length <= 500000)
+
+  notify(player, $mpm.last_created_package_encoded[1..100000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[100001..200000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[200001..300000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[300001..400000], 0, 1);
+
+  notify(player, $mpm.last_created_package_encoded[400001..$], 0, 0);
+
+else
+
+  player:tell("Package larger than 500000, manually update :display_encoded_package_data to support more lines or write a custom eval.");
+
+endif
+
+player:tell("______________ Copy above ______________");
+
+player:tell("Make sure when you copy and paste your package is only ONE long line.");
+
+.
+
+
+@verb $mpm:"strip_trailing_comments_in_verb_code" this none this
+
+@program $mpm:strip_trailing_comments_in_verb_code
+
+":strip_trailing_comments_in_verb_code(LIST lines) => LIST";
+
+"strips all trailing comments/string literals from the end of a verb";
+
+"mainly used to strip out VMS/commit messages as they get quite long";
+
+"and are often not useful for those installing packages";
+
+{lines} = args;
+
+lines = reverse(lines);
+
+newlines = {};
+
+for i in [1..length(lines)]
+
+  if (!$mpm:match_comment(lines[i]))
+
+    newlines = lines[i..$];
+
+    break;
+
+  endif
+
+endfor
+
+if (!newlines)
+
+  "we would only get here if the entire verb was string literals... but it's possible";
+
+  newlines = {"\"entire verb was string literals\";"};
+
+endif
+
+return reverse(newlines);
 .
