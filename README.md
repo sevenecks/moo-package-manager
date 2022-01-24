@@ -1,4 +1,4 @@
-# MOO Package Manager (MPM) 1.2
+# MOO Package Manager (MPM) 1.3
 
 ## About
 The MOO Package Manager is a configurable package manager written in MOO code and designed for [ToastStunt](https://github.com/lisdude/toaststunt) (a LambdaMOO fork). It allows you to:
@@ -210,7 +210,7 @@ To make a package, you use the `@make-package` command and provide arguments. Fo
 
 > Warning: The more complicated your code is, and the more reliant it is on other utilities/objects the larger your package is going to be.
 
-When your package is finished, the package map and serialized package maps will be stored in the `$mpm.last_created_package_map` and `$mpm.last_created_package_hash` properties respectively.
+When your package is finished, the package map and serialized package maps will be stored in the `$mpm.last_created_package_map` and `$mpm.last_created_package_hash` properties respectively. You will be given an option to display the encoded package to the screen so you can copy and paste it.
 
 > Warning: If your package is larger than your servers `MAX_QUEUED_OUTPUT` (set in options.h or overridden with `$server_options.max_queued_output` you won't be able to print the entire package using `@show` or even a single `notify()`. In these cases `$mpm:display_encoded_package()` should help. Just make sure there are no extra spaces or non base64 characters at the end of the string after copy and pasting. If you get a network buffer error, try running the eval again.
 
