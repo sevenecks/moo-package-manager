@@ -25,6 +25,8 @@
 * Updated MPM Wizard verbs to 1.3
 * Added new option to :is_mpm_update to make it run silently without user prompts, since we call it multiple times now
 * Updated readme to point out $mpm:display_encoded_package() instead of the evals it had in place of that in the warning inside Making a Package
+* Updated /code/moo_package_manager to 1.3
+* Updated /code/moo_package_manager_wizard_verbs to 1.3
 
 ## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist

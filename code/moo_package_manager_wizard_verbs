@@ -1,260 +1,551 @@
 @verb me:@install-package none none none rxd
 @program me:@install-package
 "import a package";
+
 "- add ability to scan for verbs that need wizard perms before denying creation";
+
 "- add dry run option which is default, and real run option which needs to be passed in";
+
 "- add ability to specify a non wizard owner of non wizard verbs";
+
 "- installing on toaststunt with toast $recycler gives weird results when doing $reyccler:valid";
+
+"- when an object is detected during install, we should give the option of providing an alternative object. see case of #20 being String Utils but having a different $string_utils";
+
 if (!player.wizard)
+
   return player:tell("You need to be a wizard to import packages due to permissions issues that can crop up. If you're sure you want to try this without this check, you can always edit the check out of the verb :)");
+
 endif
+
 data = $mpm.loaded_package;
+
 package_map = parse_json(data, "embedded-types");
+
 if (!maphaskey(package_map, "package_name"))
+
   return player:tell("No package name found. Possibly bad package. Aborting.");
+
 endif
+
+"@DEPRECATED -- remove the VERBNF at version 2.0";
+
+"TODO: add third argument to is_mpm_update set to true in MPM 1.4";
+
+if (!$mpm:is_mpm_update(package_map["package_data"], package_map["package_name"]) && maphaskey(package_map, "mpm_version") && package_map["mpm_version"] > `$mpm:version() ! E_VERBNF => 1.2')
+
+  return player:tell("This package was created with a newer version of MPM. There may be compatibility issues. Please update your MPM to the latest version.");
+
+endif
+
 player:tell("Package: ", package_map["package_name"], " @ ", package_map["package_version"]);
+
 player:tell("Checking package hash to ensure consistency...");
+
 if (package_map["package_hash"] != string_hash(toliteral(package_map["package_data"]), "MD5"))
-  player:tell("Package hash does not match. Possible data consistency issue.");
-  player:tell("This may just be due to the way parse_json sometimes adds extra escape strings (Slither is trying to nail down what is causing it). If you are confident in the package, you can try installing and it will probably work.");
+
+  player:tell("Package hash does not match. Possible data consistency issue. If the package looks good in @view-package, you can ignore this.");
+
   if (!$command_utils:yes_or_no("Continue install?"))
+
     return player:tell("Aborted.");
+
   endif
+
 else
+
   player:tell("Package hash matches, continuing...");
+
 endif
+
 player:tell("Checking if package has previously been installed...");
+
+"@DEPRECATED when we no longer have packages that don't have a package_id, remove the trycatch";
+
 "we just pass 1 if there is no id";
+
 if (installed_packages = $mpm:is_package_already_installed(`package_map["package_id"] ! E_RANGE => 1'))
+
   $mpm:display_install_history(installed_packages);
+
 else
-  player:tell("Package has not been previously installed.");
+
+  player:tell("Previous versions of package not detected.");
+
 endif
+
 $mpm:display_package_meta(package_map, 0);
+
 if (!$command_utils:yes_or_no("Do you want to install this package?"))
+
   return player:tell("Package installation aborted.");
+
 endif
+
 "this holds our references from package objects to this moos objects";
+
 object_waif = $memory_waif:new();
+
 "options array for use in configurating package imports";
-options = [];
+
+"we need to do some stuff for backwards compatibility";
+
+"TODO: remove this when we no longer have the old packages or we repackage them";
+
+if (maphaskey(package_map, "package_options"))
+
+  options = package_map["package_options"];
+
+else
+
+  options = [];
+
+endif
+
+"THIS can be removed when we are off all the 1.0 packages";
+
 if (maphaskey(package_map, "package_target_self"))
+
   options["package_target_self"] = package_map["package_target_self"];
+
 endif
+
 origin_object = $mpm:package_install(package_map["package_data"], object_waif, options);
-if (maphaskey(package_map, "package_post_install_note") && package_map["package_post_install_note"])
-  player:tell("Post Installation Note:");
-  player:tell(package_map["package_post_install_note"]);
-endif
-if (maphaskey(package_map, "package_post_install_verb"))
-  verbname = package_map["package_post_install_verb"];
-  player:tell("This package has specified a verb to be executed upon successfully install: '", verbname, "'. It can be automatically run now, or you can run it yourself manually.");
-  if ($command_utils:yes_or_no("Run this verb (YES) or do not run the verb (NO)"))
-    origin_object:(verbname)();
-    player:tell("Finished running post install verb.");
-  else
-    player:tell("Did not run post install verb. You can eval it yourself with: ;", object, ":", verbname, "()");
-  endif
-endif
-player:tell("Done installing.");
+
 "store meta info about this packages creation";
+
 $mpm:log_installed_package(origin_object, package_map);
-"Last modified by Fengshui (#22664) on Wed Jan 19 21:55:14 2022 PST";
+
+if (maphaskey(package_map, "package_post_install_note") && package_map["package_post_install_note"])
+
+  player:tell("Post Installation Note:");
+
+  player:tell(package_map["package_post_install_note"]);
+
+endif
+
+if (maphaskey(package_map, "package_post_install_verb"))
+
+  verbname = package_map["package_post_install_verb"];
+
+  player:tell("This package has specified a verb to be executed upon successfully install: '", verbname, "'. It can be automatically run now, or you can run it yourself manually.");
+
+  if ($command_utils:yes_or_no("Run this verb (YES) or do not run the verb (NO)"))
+
+    origin_object:(verbname)();
+
+    player:tell("Finished running post install verb.");
+
+  else
+
+    player:tell("Did not run post install verb. You can eval it yourself with: ;", object, ":", verbname, "()");
+
+  endif
+
+endif
+
+player:tell("Done installing.");
 .
 
 @verb me:@make-package any any any rxd
 @program me:@make-package
-"WARNING: this will not serialize verbs on the player, or verbs called on non cored objects in the code";
-"For example, if you call player:tell or player:notify those will be ignored.";
 "TODOS:";
-"- have a dependency graph resolution system to pull all dependencies down? not sure if we want this";
+
 "- add dependency check to see if we've already stored the cored references to something";
+
 "- figure out how we want to deal with bf_ verbs";
 "- we need to add a check for if the verb's name has changed ie: $command_utils:sin suspend_if_needed to confirm they want the new verbs name";
+
 "- make cored reference updates happen at the end of the package";
+
 "- rename fully serialize parent to fully serialize ancestry";
+
 "- store if the programmer needs to be a wiz, essentially if any verbs are owned by a $wiz";
-"- figure out how to add some colorz";
+
 "- test with verbs and props that have an extra : like for waifs";
+
 "- figure out how to handle binary in props -- use @compare after serializing $su which has a binary_conversions code";
+
 "-- ;$critical($su.ascii == decode_binary(\" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~7E~09\"))";
+
 "-- decode_binary may be returning a space for a tab?";
+
 "-- something with how it's decoding, where we might need to reencode props?";
+
 "- make sure we are calling out ToastStunt in the repo and in the lambda-moo guide";
+
 "- make sure when we are adding new names to verbs we call it out";
+
 "- add ability to save default options that are used, such as ignore-prop-list";
+
 "- figure out what happens when we are dealing with waifs";
-"- add a strip VMS option";
-"- test package with no ancesetry";
+
 if (!dobjstr)
+
   player:tell("Usage: @make-package <obj> [--select-verbs  --fully-serialize-ancestry  --serialize-#1  --verb-list=verb,verb2  --ignore-prop-list=prop,obj.prop2");
-  player:tell("                            --ignore-all-props  --reset-prop-value-list:=obj.prop,obj.prop2  --only-origin-object  --ignore-all-cored-props");
+
+  player:tell("                            --reset-prop-value-list:=obj.prop,obj.prop2  --only-origin-object  --ignore-all-cored-props");
+
   player:tell("                            --ignore-all-non-cored-props  --only-include-prop-list=#1.name,last_connect_time  --target-self");
+
   player:tell("                            --dont-serialize-cored-aliases  --post-install-verb=verbname  --allow-dynamic-verb-calls  --allow_dynamic-prop-calls");
-  player:tell("                            --dont-serialize-ancestry  --dry-run]");
+
+  player:tell("                            --dont-serialize-ancestry  --strip-trailing-comments  --dry-run]");
+
   player:tell("See the documentation for more info on how to use the args: https://github.com/sevenecks/moo-package-manager");
+
   return;
+
 endif
+
 "parse the commandline args into an options map";
+
 options = $mpm:parse_command_arguments(dobjstr);
+
 "create the base package information";
+
 package_object = options["package_object"];
+
 package_map = $mpm:create_package_meta(package_object);
+
 "let the user select the verbs they want to serialize on the origin object";
+
 if (maphaskey(options, "verb_list_from_command_args") && options["select_verbs"])
+
   return player:tell("You can't use the --select-verbs and --verb-list options together.");
+
 endif
+
 if (options["select_verbs"])
+
   "dynamically select verbs for package";
+
   verbs = $mpm:dynamically_select_verbs_for_package(package_object);
+
   if (!verbs && !$command_utils:yes_or_no("You didn't select any verbs for the package. Are you sure you want to continue?"))
+
     return player:tell("Aborted package creation.");
+
   else
+
     if (!$command_utils:yes_or_no(tostr("Create a package of ", $string_utils:nn(package_object), " with verbs: ", $string_utils:from_list(verbs, ", "), "?")))
+
       return player:tell("Aborted package creation.");
+
     endif
+
   endif
+
 else
+
   if (maphaskey(options, "verb_list_from_command_args"))
+
     verbs = options["verb_list_from_command_args"];
+
   else
+
     "serialize all verbs on origin object";
+
     verbs = verbs(package_object);
+
   endif
+
 endif
+
 if (!$mpm:confirm_package_creation_options(options, verbs, package_map))
+
   return player:tell("Package creation aborted.");
+
 endif
+
 package_map["package_data"] = $mpm:package_serialize(package_object, verbs, $object_utils:all_properties(package_object), options);
+
+"@DEPRECATED needed for backwards compatibility -- deprecate when we get to 2.0";
+
 if (options["post_install_verb"])
+
   package_map["package_post_install_verb"] = options["post_install_verb"];
+
 endif
-"if this package is targetting the installer, we add this flag so that upon installation we can perform special behavior";
+
+"@DEPRECATED needed for backwards compatibility -- deprecate when we get to 2.0";
+
 if (options["target_self"])
-  package_map["package_target_self"] = true;
+
+  package_map["package_target_self"] = options["target_self"];
+
 endif
+
+"if this package is targetting the installer, we add this flag so that upon installation we can perform special behavior";
+
+package_map["package_options"] = options;
+
 "HASH NEEDS TO BE LAST!";
+
 package_map["package_hash"] = string_hash(toliteral(package_map["package_data"]), "MD5");
+
 json_package_data = generate_json(package_map, "embedded-types");
+
 "store a hash for future facing reasons";
+
 if (options["dry_run"])
+
   "this is a dry run so we aren't capturing the entire pacakge to $mpm";
+
   if ($command_utils:yes_or_no("Dry run complete. Do you want to print the package map to the screen?"))
+
     notify(player, toliteral(package_map));
+
   endif
+
   if ($command_utils:yes_or_no("@view-package? (pretty prints package)"))
+
     $mpm:display_package(json_package_data);
+
   endif
+
   player:tell("Dry run complete.");
+
 else
+
   $mpm.last_created_package_map = package_map;
+
   $mpm.last_created_package_encoded = encode_base64(encode_binary(json_package_data));
+
   $mpm:log_created_package(package_object, package_map);
+
   player:tell("Package Map saved to $mpm.last_created_package_map prop, packaged base64 (use for export) saved to $mpm.last_created_package_encoded");
+
+  if ($command_utils:yes_or_no("Print encoded package data?"))
+
+    $mpm:display_encoded_package();
+
+  else
+
+    player:tell("Display it later with: ;$mpm:display_encoded_package()");
+
+  endif
+
+  player:tell("Done making package.");
+
 endif
-"Last modified by Fengshui (#22664) on Wed Jan 19 22:21:06 2022 PST";
 .
 
 @verb me:@view-package any none none rxd
 @program me:@view-package
 "wrapper for viewing a package";
+
+"- make this show the package options it was created with";
+
 if (dobjstr == "loaded")
   if (!$mpm.loaded_package)
+
     return player:tell("No loaded package to view.");
+
   endif
+
   $mpm:display_package($mpm.loaded_package);
+
 elseif (dobjstr == "created")
+
   if (!$mpm.last_created_package_map)
+
     return player:tell("No created package to view.");
+
   endif
+
   $mpm:display_package(generate_json($mpm.last_created_package_map, "embedded-types"));
+
 else
+
   return player:tell("Usage: @view-package created or @view-package loaded");
+
 endif
-"VMS NOTE slither auto note #22664 01/18/22  7:28";
-"VMS VERSION 1.0";
-"Last modified by Fengshui (#22664) on Tue Jan 18 19:28:35 2022 PST";
+
 .
 
 @verb me:@load-package none none none rxd
 @program me:@load-package
 "load a package for processing";
+
 "- make a strip_binary verb that loops over a list and pulls out the strings";
+
 "- figure out how we are going to load the package header information";
-"- gracefully handle \"404: Not Found\"";
+"- trim incoming data of spaces";
+
 url = "";
+
 options = {"1. View Available Packages", "2. Load package directly from URL"};
+
 player:tell_lines(options);
+
 selection = toint($command_utils:read("Please enter a number"));
+
 if (!selection || !`options[selection] ! E_RANGE => 0')
+
   return player:tell("Invalid selection. Aborting.");
+
 endif
+
 if (selection == 1)
+
   player:tell("Please select the package repository you wish to browse:");
+
   i = 0;
+
   repository_names = mapkeys($mpm.registered_repositories);
+
   for reponame in (repository_names)
+
     i = i + 1;
+
     player:tell(i, ": ", reponame);
+
   endfor
+
   repo_selection = toint($command_utils:read("Please enter a number"));
+
   if (!repo_selection || !`repo_name = repository_names[repo_selection] ! E_RANGE => 0')
+
     return player:tell("Invalid selection. Aborting.");
+
   endif
+
   player:tell("Retrieving packages available in '", repo_name, "'...");
+
   repo_url = $mpm.registered_repositories[repo_name];
+
   repo_data = call_function("curl", repo_url);
+
   if (typeof(repo_data) == MAP)
+
     return player:tell("Error retrieving package repo data: ", repo_data["message"]);
+
   endif
+
   repo_data = decode_binary(repo_data);
+
   available_package_headers = {};
+
   for data in (repo_data)
+
     if (typeof(data) == STR)
+
       available_package_headers = {@available_package_headers, data};
+
     else
+
       "this is an INT most likely, and binary data (EOL) we don't give fucks about";
+
     endif
+
   endfor
+
   if (!available_package_headers)
+
     return player:tell("No available packages.");
+
   endif
+
   available_packages = $mpm:parse_available_package_headers(available_package_headers);
+
   i = 0;
+
   for package in (available_packages)
+
     i = i + 1;
+
     player:tell(i, ": ", package["package_name"], " @ ", package["package_version"]);
+
   endfor
+
   package_index = toint($command_utils:read("enter package # to see details"));
+
   if (!package_index || !`available_packages[package_index] ! E_PROPNF => 0')
+
     return player:tell("Invalid selection. Aborting.");
+
   endif
+
   $mpm:display_package_meta(available_packages[package_index], 0);
+
   if (!$command_utils:yes_or_no("Load this package onto server (preps for install, but does not install)?"))
+
     "TODO; make this a loop so you can view multiple packages";
+
     return player:tell("Aborting.");
+
   endif
+
   url = available_packages[package_index]["package_url"];
+
 elseif (selection == 2)
+
   player:tell("Loading package from URL via CURL, please specify the URL of the package data:");
+
   url = $command_utils:read("url");
+
   if (!url)
+
     player:tell("No url provided, using https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/diff_utils");
+
     url = "https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/diff_utils";
+
   endif
+
 endif
+
 if (!url)
+
   return player:tell("No url selected. Aborting.");
+
 endif
+
 "url = https://raw.githubusercontent.com/sevenecks/moo-package-manager/master/packages/map-utils-test";
+
 data = call_function("curl", url);
+
 if (typeof(data) == MAP)
+
   return player:tell("Error retrieving help text: ", data["message"]);
+
+elseif (data == "404: Not Found")
+
+  return player:tell("Error: 404: Not Found");
+
 endif
-data = decode_binary(data);
-data = decode_base64(data[1]);
+
+try
+
+  data = decode_binary(data);
+
+  data = decode_base64(data[1]);
+
+except e (E_INVARG)
+
+  player:tell("We encountered an error retreiving the data. Would you like to print the data we received back for debugging purposes?");
+
+  if ($command_utils:yes_or_no())
+
+    player:tell(toliteral(data));
+
+  endif
+
+  return;
+
+endtry
+
 $mpm.loaded_package = data;
+
 player:tell("Package imported. You can view it with '@view-package loaded' or install it with @install-package");
-"Last modified by Fengshui (#22664) on Wed Jan 19 20:50:31 2022 PST";
+
+.
+
+@verb me:@manage-packages any none none rxd
+@program me:@manage-packages
+"@manage-packages";
+
+"wrapper verb for calling $mpm:manage_packages()";
+
+$mpm:manage_packages();
 .
