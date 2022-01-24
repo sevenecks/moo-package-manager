@@ -4139,13 +4139,11 @@ return parts;
 
 @verb $mpm:"dump_package_headers" this none this
 @program $mpm:dump_package_headers
-
 ":dump_package_headers() => NONE";
 
 "dumps the package headers which can be included in the package_list for your";
 
 "repository.";
-
 headers = {};
 
 divider = "%%%";
@@ -4154,14 +4152,17 @@ for package_list, OBJ in (this.created_packages)
 
   for package in (package_list)
 
-    headers = {@headers, tostr(package["package_name"], divider, package["package_version"], divider, package["package_hash"], divider, package["package_description"], divider, package["package_created_at"], divider, package["package_created_by"], divider, package["package_url"], divider, package["package_changelog"])};
+    if (maphaskey(package, "deprecated") && package["deprecated"])
+
+      headers = {@headers, tostr(package["package_name"], divider, package["package_version"], divider, package["package_hash"], divider, package["package_description"], divider, package["package_created_at"], divider, package["package_created_by"], divider, package["package_url"], divider, package["package_changelog"])};
+
+    endif
 
   endfor
 
 endfor
 
 player:tell_lines(headers);
-
 .
 
 
