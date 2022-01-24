@@ -277,7 +277,7 @@ Below is an example of using --reset-prop-value-list to `@make-package` a new ve
 
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --dry-run
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --dry-run
 ```
 
 * `--reset-prop-value-list` to reset props specific to the instance of the object and that are not needed in the package. 
@@ -304,7 +304,7 @@ All other property values (such as WAIF, ANON, ERR) will throw `E_ARGS` with the
 An example of serializing the MPM Helper Verbs that a `wizard` uses to make/load/install/view packages:
 
 ```
-@make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --target-self --dry-run
+@make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package,@manage-packages --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --target-self --strip-trailing-comments --dry-run
 ```
 
 In the above example we made use of a variety of command-line options:
@@ -314,9 +314,10 @@ In the above example we made use of a variety of command-line options:
 * `--dont-serialize-cored-aliases` so we don't serialize any props on $sysobj that point to the `origin object`
 * `--dont-serialize-ancestry` so we don't package up the parents of the `origin object`
 * `--allow-dynamic-verb-calls` so that `@install-package` (which can dynamically call a verb on the installed package when install completes) doesn't raise an error when MPM detects the dynamic verb call
-* `--dry-run` so we can test out packaging without saving the package to `.created_packages`.
 * `--ignore-all-non-cored-props` so that we don't serialize any of the props on #22664 (good thing too, since `player` bits typically have a lot of props
 * `--target-self` to make this package install on the `player` who runs `@install-package`
+* `--strip-trailing-comments` to strip off any commit messages that may have been added by a modified `@program` verb, common on some MOOs
+* `--dry-run` so we can test out packaging without saving the package to `.created_packages`.
 
 ** Example: Serializing Some Updated String Utils Verbs **
 

@@ -20,6 +20,7 @@
 * Added :display_encoded_package() and added option to call it when @make-package completes
 * Removed completed TODOs from @make-package 
 * Added --strip-trailing-comments option to @make-package to remove trailing comments in verbs, added to readme as well, added :strip_trailing_comments_in_code to support this
+* Updated @make-package examples
 
 ## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
