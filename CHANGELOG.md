@@ -21,6 +21,8 @@
 * Removed completed TODOs from @make-package 
 * Added --strip-trailing-comments option to @make-package to remove trailing comments in verbs, added to readme as well, added :strip_trailing_comments_in_code to support this
 * Updated @make-package examples
+* Updated MPM to 1.3
+* Updated MPM Wizard verbs to 1.3
 
 ## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
