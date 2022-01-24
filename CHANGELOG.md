@@ -1,7 +1,39 @@
-## [1.2.0] - 2022.01.21 @ 12:42am
+## [1.3.0] - 2022.01.23 2:25PM
+* Added String Utils Enhanced @ 1.1
+* Added Enhanced Coder Verbs @ 1.0
+* Added $mpm:manage_packages() to let users review/edit/delete packages from .created_packages and .installed_packages
+* Added package_id, package_changelog to log_created_package, causing it to be stored in .created_packages
+* Added package_id to log_installed_package, causing it to be stored in .installed_packages
+* Added package_changelog, package_url, mpm_version to .installed_package map on install
+* Added @manage-packages verb for MPM Wizard Verbs, acts as a wrapper for $mpm:manage_packages
+* Added Manager Packages section to readme
+* Moved loading/installing/viewing packages section above Making a package section in README, since people are probably more interested in that to start.
+* Moved log_installed_package above post install note and post install verb in @install-package to facilitate better logging of MPM being upgraded
+* Added handle_post_install to $mpm to make copying over props and data easier and not require user to do anything besides confirm
+* Updated wording around hash mismatch in @install-package
+* Updated wording around previous versions not detected
+* removed debugging from $mpm:slice_ancestor_name_number_aliases_and_cored
+* Added warning in Installing a Package readme section about updating cored references
+* Updated wording in verbs for installing packages to make them more concise and clear, and add ansi
+* Made :find_object always return $nothing when is_mpm_update returns true, so we don't prompt the user to use the existing object, ever
+* Made package_update_object never install cored references when upgrading $mpm
+* Added :display_encoded_package() and added option to call it when @make-package completes
+* Removed completed TODOs from @make-package 
+* Added --strip-trailing-comments option to @make-package to remove trailing comments in verbs, added to readme as well, added :strip_trailing_comments_in_code to support this
+* Updated @make-package examples
+* Updated MPM to 1.3
+* Updated MPM Wizard verbs to 1.3
+* Added new option to :is_mpm_update to make it run silently without user prompts, since we call it multiple times now
+* Updated readme to point out $mpm:display_encoded_package() instead of the evals it had in place of that in the warning inside Making a Package
+* Updated /code/moo_package_manager to 1.3
+* Updated /code/moo_package_manager_wizard_verbs to 1.3
+* Full Release of MPM 1.3
+
+## [1.2.0] - 2022.01.20 5:29PM
 * Removed --ignore-all-props from @make-package argument list since it doesn't exist
 * Added String Utils Enhanced 1.0 package
 * Packaging up all options used when creating a package so that they can be used when installing a package
+* Made --dont-serialize-ancestry option detected when installing a package so we don't try to rewire the parentage when it doesn't match, and so it doesn't try to update ancestors which won't actually exist in the package
 * Updated readme to callout how to handle large package displays via notify
 * Added $mpm:version verb to return MPM version
 * Added check for package version against $mpm:version to block installing packages created with a newer version of MPM than is installed. this will prevent compatibility issues.

@@ -1,4 +1,4 @@
-# MOO Package Manager (MPM) 1.2
+# MOO Package Manager (MPM) 1.3
 
 ## About
 The MOO Package Manager is a configurable package manager written in MOO code and designed for [ToastStunt](https://github.com/lisdude/toaststunt) (a LambdaMOO fork). It allows you to:
@@ -84,195 +84,6 @@ At this point you can point `$mpm` to the new object by doing `;$mpm = newObj#`.
 
 Whenever a new release of MPM comes out there will be an accompanying update to the wizard verbs. You should install the MPM update first, and then update the MPM Wizard Verbs, to avoid backwards compatibility issues
 .
-## What's in a package?
-A package is a collection of everything needed to recreate an object and its dependencies on another MOO.
-
-### Origin Object
-The `origin object` is the most important piece of your package. It serves as the starting point in building the dependency graph. By default all the verbs/props of the `origin object` are serialied. However, this behavior can be over-ridden.
-
-| Serialized | Description | State |
-| ------------- | ------------- | ------------- | 
-| Cored References | Any props on $sysobj that have a value matching this object | Always Serialized |
-| Verbs | The verbs defined on the object | All verbs serialized by default, but you can override and provide a list of verbs |
-| Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
-| Properties | The properties defiend on the object & their value | All props serialized by default, but you can override and ignore properties |
-| Property Supplementary Data | Permissions | Serialized for every included prop |
-
-### Ancestor Objects
-`Ancestors` are the parent(s) of the `origin object`. We serialize each of the ancestors but unlike the `origin object` we only serialize what we need from the `ancestor`.
-
-| Serialized | Description | State |
-| ------------- | ------------- | ------------- | 
-| Cored References | Any props on $sysobj that have a value matching this object | Always Serialized |
-| Properties | The properties defiend on the object & their value | All props serialized by default, but you can override and ignore properties |
-| Property Supplementary Data | Permissions | Serialized for every included prop |
-| `pass()`ed verbs | The verbs on the `origin object` that `pass()` to an ancestor | Always Serialized |
-| Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
-
-### Other Objects
-A package may rely on more than it's `ancestors`. The dependency graph that is built scans for cored references to other objects that are defined in the code. For example if your `origin object` defines a verb that makes a call to `$string_utils:name_and_number()` then we will include `$string_utils`. This inclusion essentially creates a sub package, treating `$string_utils` as the `origin object` but serializing only the verbs on `$string_utils` that are called elsewhere in the package. If a verb in the `$string_utils` sub package calls `$command_utils:suspend_if_needed` then another sub package is created within the `$string_utils` sub package, treating `$command_utils` as the origin object, and so on and so forth, until all of the dependencies have been serialized throughout the graph.
-
-| Serialized | Description | State |
-| ------------- | ------------- | ------------- | 
-| Cored References | Any props on $sysobj that have a value matching this object | Always Serialized |
-| Properties | The properties defiend on the object & their value | All props serialized by default, but you can override and ignore properties |
-| Property Supplementary Data | Permissions | Serialized for every included prop |
-| referenced  verbs | The verbs on this object that are referenced elsewhere in the package code | Always Serialized |
-| Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
-
-### Not Included
-
-Code referenced on objects such as player/dobj/iobj is deliberately not included in the package as this would create a gigantic dependency graph and essentially requrie updating a huge number of verbs just because a verb calls `player:tell()` once.
-
-> Note: It should technically be possible to make a package out of an object like Generic Player (#6) but experiences may vary. That has not been tested at this point. Feel free to ping me if you do it and let me know how it goes!
-
-## Making a Package
-
-To make a package, you use the `@make-package` command and provide arguments. For example:
-
-```
-@make-package                          -> show the argument options
-@make-package #20                      -> start creating a package out of #20
-```
-
-> Warning: The more complicated your code is, and the more reliant it is on other utilities/objects the larger your package is going to be.
-
-When your package is finished, the package map and serialized package maps will be stored in the `$mpm.last_created_package_map` and `$mpm.last_created_package_hash` properties respectively.
-
-> Warning: If your package is larger than your servers `MAX_QUEUED_OUTPUT` (set in options.h or overridden with `$server_options.max_queued_output` you won't be able to print the entire package using `@show` or even a single `notify()`. In these cases the following eval may come in handy as it makes use of the `suppress-new-line` option of `notify()` which should keep your package from displaying with line breaks: `;notify(me, $mpm.last_created_package_encoded[1..100000], 0, 1); notify(me, $mpm.last_created_package_encoded[100001..$], 0, 0)` just make sure there are no extra spaces or non base64 characters at the end of the string after copy and pasting. If you get a network buffer error, try running the eval again.
-
-> Note: See the section on Making Packages Available Online for more information on how to make your package available online.
-
-### Package Creation Caveats
-
-The package manager works best with mostly self contained code that doesn't rely on verbs across your entire MOO. In general, MOO code is pretty coupled, and so you may end up with a large dependency graph. If you are making a package, please consider how this might affect the usability of your package and consider decoupling your code, or creating smaller packages.
-
-> Note: Since the package manager is still beta, lots of experimentation, testing, and updates to the package manager will likely be needed to make it as robust as possible and capable of handling dependencies more smartly. Suggestions are welcome!
-
-It is currently not possible to serialize a package which contains binary data such as `~1E`. This is due to how we are currently encoding the packages. If you have suggestions for how we can do encode better, please reach out.
-
-It is currently not possible to serialize packages that reference object numbers in their code. Use cored references instead.
-
-It is currently not possible to serialize packages that make dynamic verb or property references such as:
-
-```
-verbname = "nn";
-propname = "apropnamehere";
-$string_utils:(verbname)(player);
-$widget_utils.(propname);
-$string_utils:("left")();
-$widget_utils.("someprop");
-```
-
-This is due to the fact that we can't smartly serialize these references without actually parsing all the verb code to figure out what it is trying to call.
-
-> Note: If you are sure the dynamic prop or verb references will not break the functionality of your package (for instance if they just dynamically call verbs on the object being packaged) you can override the abortion of your package creation with the `--allow-dynamic-verb-calls` and `--allow-dynamic-prop-calls` options.
-
-> Call to Action: Suggestions for how to deal with this are welcome. I'm considering just prompting the user to provide the verbs/props manually instead of failing the package creation entirely like we are doing now.
-
-> Multiple inheritance is not supported.
-
-### Package Creation Options
-
-`@make-package` accepts a number of arguments outlined below:
-
-| Argument | Description | Required |
-| ------------- | ------------- | ------------- | 
-| object number | the object number of the `origin object`, must be first argument provided | yes |
-| --select-verbs | enable dynamic selection of verbs on `origin object` to include via interactive prompt | no |
-| --fully-serialize-ancestry | enable full serialization of ancestors verbs (excluding objects whose parent is $nothing) | no |
-| --serialize-#1 | enable full serialization of ancestors whose parent is $nothing | no |
-| --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!) | no |
-| --ignore-prop-list=propname1,propname2,#20.propname,... | if no obj# is provided, ignores any prop on any object with specified propname, if obj# is provided, ignores that prop on only that obj# | no |
-| --reset-prop-value-list=obj.prop,obj.prop,... | if provided, when serializing obj.prop it will be reset to an empty/false version of whatever value it holds | no |
-| --only-origin-object | Ignore all package dependencies and only serialize the origin object + ancestry | no |
-| --ignore-all-cored-props | Ignore all cored properties, meaning the props & objects they reference will not be serialized in the package | no |
-| --dont-serialize-cored-aliases | If any object being serialized has cored aliases, such as $string_utils, they will not be included |
-| --ignore-all-non-cored-props | Ignores any properties defined on objects, causing them to not be serialized in the package |
-| --only-include-prop-list=obj.prop1,prop2,... | if obj# is provided, it will only include that prop on the specified obj, if no obj# provided it will include any matching prop on any obj being included in the package | no |
-| --post-install-verb=verbname | Specify a verb that will be automatically run after a successful installation. Verb must exist on `origin object` and cannot accept any arguments. | no |
-| --target-self | this option overrides the default behavior and forces the package to be installed on the `player` installing it. Must be used in conjunction with --only-origin-object | no |
-| --allow-dynamic-verb-calls | this will prevent package creation from aborting when a dynamic verb call is detected. use with care. | no | 
-| --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
-| --dont-serialize-ancestry | This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing, and avoiding the need to rewire ancestors. useful if you aren't relying on ancestors verbs | no |
-| --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
-
-> Note: Arguments can be provided in any order, except for the object number, which must be first.
-
-Below is an example of using --reset-prop-value-list to `@make-package` a new version of the MOO Package Manager (in this case, the obj# for the package manager is #24836). 
-
-
-```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --dry-run
-```
-
-* `--reset-prop-value-list` to reset props specific to the instance of the object and that are not needed in the package. 
-* `--only-origin-object` argument to only serialize the MPM itself.
-* `--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. 
-* `--allow-dynamic-prop-calls` and dynamic verb calls via `--allow-dynamic-verb-calls` pecifies we should allow serializing to continue when we detect dynamic prop calls
-* `--dry-run` to avoid saving the package map. 
-
-The `--reset-prop-value-list` argument can only reset certain properties:
-
-| Type | Reset Value |
-| ---- | ----------- |
-| INT | 0 |
-| STR | "" |
-| LIST | {} |
-| MAP | [] |
-| BOOL | false |
-| FLOAT | 0.0 |
-| OBJ | #-1 |
-
-All other property values (such as WAIF, ANON, ERR) will throw `E_ARGS` with the value it failed to reset, and package creation will be aborted.
-
-An example of serializing the MPM Helper Verbs that a `wizard` uses to make/load/install/view packages:
-
-```
-@make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --target-self --dry-run
-```
-
-In the above example we made use of a variety of command-line options:
-* `--verb-list` to specify the ONLY verbs on the object we wanted to serialize
-* `--only-origin-object` to only serialize the `origin object ` thus MPM does not to dive into the dependency graph
-* `--ignore-all-cored-props` so we don't get cored references in our package map, that we wouldn't be using anyway
-* `--dont-serialize-cored-aliases` so we don't serialize any props on $sysobj that point to the `origin object`
-* `--dont-serialize-ancestry` so we don't package up the parents of the `origin object`
-* `--allow-dynamic-verb-calls` so that `@install-package` (which can dynamically call a verb on the installed package when install completes) doesn't raise an error when MPM detects the dynamic verb call
-* `--dry-run` so we can test out packaging without saving the package to `.created_packages`.
-* `--ignore-all-non-cored-props` so that we don't serialize any of the props on #22664 (good thing too, since `player` bits typically have a lot of props
-* `--target-self` to make this package install on the `player` who runs `@install-package`
-
-### Package Meta Data
-
-There are a number of meta data fields associated with your package. These fields are serialized with your package, and also make up the package header information that can be made available in a package_list inside a package repository. The meta data is mainly collected by prompting the user during the package creation process, but some is autogenrated as well. The meta data saved for a package is outlined below:
-
-| Name| Description | Required |
-| ------------- | ------------- | ------------- | 
-| Package Name | Name of your package, this should NOT include a version number | yes |
-| Package Id | The id of your package. This will carry over each time you create a new version of the package | yes |
-| Package Version | A float. Like 1.0 or 1.1, the version of your package | yes |
-| Package Hash | An md5 hash of your package map, auto generated when you create a package | yes |
-| Package Description | The description of your package. This is shown when browsing a package repository and when viewing/installing a package | yes |
-| Package Created At | An autogenerated timestamp of when the package was created | yes |
-| Package Created By | The name and number of the programmer who created the package | yes |
-| Package URL | The url where the package can be found online. | no |
-| Package Changelog | Holds the most recent updates to the package, for when you are updating an existing package | no |
-| Package Post Install Note | A note shown to the user when the package is finished installing. Good for any additional setup options, or pointing to help files | no |
-| Package Options | The options that the package was created using. | no |
-| Package Post Install Verb | (DEPRECATED, included in package options now) A verb that gets run when the package finishes installing | no |
-| Package Target Self | (DEPRECATED, included in package options now) Notifies the package manager that the target of this package is the `wizard` installing the package | no |
-| MPM Version | The version of MPM that was used to create the package | yes |
-
-### Self Targeted Packages
-
-It is possible to create packages targeted at the `wizard` installing the package via MPM. This is a great way to package up cool verbs that you use and think others will find useful, such as a version of `@verbs` or `@parents` that displays information in a well formatted way.
-
-Care should be taken when creating self targeted packages. You need to make sure you aren't packaging up an entire `player` bit. Use the command line arugments to filter out or ignore properties and cored references that your package doesn't need to include and that might interfere with or alter the `wizard` installing the package.
-
-### Testing a Created Package
-
-It's important that you test your newly created package on a dev server before making it available to the public. It would be preferable to test the package with a stock [ToastCore](https://github.com/lisdude/toastcore) database. This will ensure it works as expected without any potential hidden dependencies that cause it to function properly on your MOO, that were some how not serialized as part of the package.
 
 ## Loading a Package
 
@@ -338,11 +149,303 @@ If a cored reference doesn't exist, it will be created.
 
 If a cored reference exists and doesn't match, you will be propmted and given the option to accept or decline the update.
 
+> Warning: Take care when updating cored references, as they PROBABLY exist on your moo for a reason. If you are replacing an entire utility object it is probably OK to update its cored reference, but if the cored reference you are updating is for a dependency of the package you are installing, BEWARE! We are only installing the verbs USED BY THE PACKAGE. This means if you decided to create a new instance of String Utilities as part of this package, only a few verbs are likely being installed. You should NOT update your cored reference, or you'll be getting tons of tracebacks. Instead, choose NOT to update it, and then update the code from this package that is referencing the cored reference (IE: $widget_utils) to point to the NEW OBJECT you may have created. Remember that failing to do so when needed could result in a broken package.
+
 If at any point, an object that is needed doesn't exist (if for example the package needed $widget_utils, which your MOO didn't have), the package manager will find the closest ancestor that your MOO does have, and offer to create the parent from that, in the same way it did with the `origin object`.
 
 > Note: Any property/verb additions or updates are logged in `$mpm.log` along with the old/new verb/prop values and any other data associated with the change. While the package manager doesn't currently offer a rollback option, if the worst happens, you'll have an audit log of the changes made and can attempt to manually fix/revert.
 
 > Warning: the `$mpm.log` can get really long. You may want to clear it from time to time.
+
+## What's in a package?
+A package is a collection of everything needed to recreate an object and its dependencies on another MOO.
+
+### Origin Object
+The `origin object` is the most important piece of your package. It serves as the starting point in building the dependency graph. By default all the verbs/props of the `origin object` are serialied. However, this behavior can be over-ridden.
+
+| Serialized | Description | State |
+| ------------- | ------------- | ------------- | 
+| Cored References | Any props on $sysobj that have a value matching this object | Always Serialized |
+| Verbs | The verbs defined on the object | All verbs serialized by default, but you can override and provide a list of verbs |
+| Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
+| Properties | The properties defiend on the object & their value | All props serialized by default, but you can override and ignore properties |
+| Property Supplementary Data | Permissions | Serialized for every included prop |
+
+### Ancestor Objects
+`Ancestors` are the parent(s) of the `origin object`. We serialize each of the ancestors but unlike the `origin object` we only serialize what we need from the `ancestor`.
+
+| Serialized | Description | State |
+| ------------- | ------------- | ------------- | 
+| Cored References | Any props on $sysobj that have a value matching this object | Always Serialized |
+| Properties | The properties defiend on the object & their value | All props serialized by default, but you can override and ignore properties |
+| Property Supplementary Data | Permissions | Serialized for every included prop |
+| `pass()`ed verbs | The verbs on the `origin object` that `pass()` to an ancestor | Always Serialized |
+| Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
+
+### Other Objects
+A package may rely on more than it's `ancestors`. The dependency graph that is built scans for cored references to other objects that are defined in the code. For example if your `origin object` defines a verb that makes a call to `$string_utils:name_and_number()` then we will include `$string_utils`. This inclusion essentially creates a sub package, treating `$string_utils` as the `origin object` but serializing only the verbs on `$string_utils` that are called elsewhere in the package. If a verb in the `$string_utils` sub package calls `$command_utils:suspend_if_needed` then another sub package is created within the `$string_utils` sub package, treating `$command_utils` as the origin object, and so on and so forth, until all of the dependencies have been serialized throughout the graph.
+
+| Serialized | Description | State |
+| ------------- | ------------- | ------------- | 
+| Cored References | Any props on $sysobj that have a value matching this object | Always Serialized |
+| Properties | The properties defiend on the object & their value | All props serialized by default, but you can override and ignore properties |
+| Property Supplementary Data | Permissions | Serialized for every included prop |
+| referenced  verbs | The verbs on this object that are referenced elsewhere in the package code | Always Serialized |
+| Verb Supplementary Data | `verb_args()`, `verb_info()`, verb owned by a `wizard` | Serialized for every included verb |
+
+### Not Included
+
+Code referenced on objects such as player/dobj/iobj is deliberately not included in the package as this would create a gigantic dependency graph and essentially requrie updating a huge number of verbs just because a verb calls `player:tell()` once.
+
+> Note: It should technically be possible to make a package out of an object like Generic Player (#6) but experiences may vary. That has not been tested at this point. Feel free to ping me if you do it and let me know how it goes!
+
+## Making a Package
+
+To make a package, you use the `@make-package` command and provide arguments. For example:
+
+```
+@make-package                          -> show the argument options
+@make-package #20                      -> start creating a package out of #20
+```
+
+> Warning: The more complicated your code is, and the more reliant it is on other utilities/objects the larger your package is going to be.
+
+When your package is finished, the package map and serialized package maps will be stored in the `$mpm.last_created_package_map` and `$mpm.last_created_package_hash` properties respectively. You will be given an option to display the encoded package to the screen so you can copy and paste it.
+
+> Warning: If your package is larger than your servers `MAX_QUEUED_OUTPUT` (set in options.h or overridden with `$server_options.max_queued_output` you won't be able to print the entire package using `@show` or even a single `notify()`. In these cases `$mpm:display_encoded_package()` should help. Just make sure there are no extra spaces or non base64 characters at the end of the string after copy and pasting. If you get a network buffer error, try running the eval again.
+
+> Note: See the section on Making Packages Available Online for more information on how to make your package available online.
+
+### Package Creation Caveats
+
+The package manager works best with mostly self contained code that doesn't rely on verbs across your entire MOO. In general, MOO code is pretty coupled, and so you may end up with a large dependency graph. If you are making a package, please consider how this might affect the usability of your package and consider decoupling your code, or creating smaller packages.
+
+> Note: Since the package manager is still beta, lots of experimentation, testing, and updates to the package manager will likely be needed to make it as robust as possible and capable of handling dependencies more smartly. Suggestions are welcome!
+
+It is currently not possible to serialize a package which contains binary data such as `~1E`. This is due to how we are currently encoding the packages. If you have suggestions for how we can do encode better, please reach out.
+
+It is currently not possible to serialize packages that reference object numbers in their code. Use cored references instead.
+
+It is currently not possible to serialize packages that make dynamic verb or property references such as:
+
+```
+verbname = "nn";
+propname = "apropnamehere";
+$string_utils:(verbname)(player);
+$widget_utils.(propname);
+$string_utils:("left")();
+$widget_utils.("someprop");
+```
+
+This is due to the fact that we can't smartly serialize these references without actually parsing all the verb code to figure out what it is trying to call.
+
+> Note: If you are sure the dynamic prop or verb references will not break the functionality of your package (for instance if they just dynamically call verbs on the object being packaged) you can override the abortion of your package creation with the `--allow-dynamic-verb-calls` and `--allow-dynamic-prop-calls` options.
+
+> Call to Action: Suggestions for how to deal with this are welcome. I'm considering just prompting the user to provide the verbs/props manually instead of failing the package creation entirely like we are doing now.
+
+> Multiple inheritance is not supported.
+
+### Package Creation Options
+
+`@make-package` accepts a number of arguments outlined below:
+
+| Argument | Description | Required |
+| ------------- | ------------- | ------------- | 
+| object number | the object number of the `origin object`, must be first argument provided | yes |
+| --select-verbs | enable dynamic selection of verbs on `origin object` to include via interactive prompt | no |
+| --fully-serialize-ancestry | enable full serialization of ancestors verbs (excluding objects whose parent is $nothing) | no |
+| --serialize-#1 | enable full serialization of ancestors whose parent is $nothing | no |
+| --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!) | no |
+| --ignore-prop-list=propname1,propname2,#20.propname,... | if no obj# is provided, ignores any prop on any object with specified propname, if obj# is provided, ignores that prop on only that obj# | no |
+| --reset-prop-value-list=obj.prop,obj.prop,... | if provided, when serializing obj.prop it will be reset to an empty/false version of whatever value it holds | no |
+| --only-origin-object | Ignore all package dependencies and only serialize the origin object + ancestry | no |
+| --ignore-all-cored-props | Ignore all cored properties, meaning the props & objects they reference will not be serialized in the package | no |
+| --dont-serialize-cored-aliases | If any object being serialized has cored aliases, such as $string_utils, they will not be included |
+| --ignore-all-non-cored-props | Ignores any properties defined on objects, causing them to not be serialized in the package |
+| --only-include-prop-list=obj.prop1,prop2,... | if obj# is provided, it will only include that prop on the specified obj, if no obj# provided it will include any matching prop on any obj being included in the package | no |
+| --post-install-verb=verbname | Specify a verb that will be automatically run after a successful installation. Verb must exist on `origin object` and cannot accept any arguments. | no |
+| --target-self | this option overrides the default behavior and forces the package to be installed on the `player` installing it. Must be used in conjunction with --only-origin-object | no |
+| --allow-dynamic-verb-calls | this will prevent package creation from aborting when a dynamic verb call is detected. use with care. | no | 
+| --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
+| --dont-serialize-ancestry | This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing, and avoiding the need to rewire ancestors. useful if you aren't relying on ancestors verbs | no |
+| --strip-trailing-comments | Strips any trailing comments (string literals) from the end of serialized verbs | no |
+| --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
+
+> Note: Arguments can be provided in any order, except for the object number, which must be first.
+
+Below is an example of using --reset-prop-value-list to `@make-package` a new version of the MOO Package Manager (in this case, the obj# for the package manager is #24836). 
+
+
+```
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --dry-run
+```
+
+* `--reset-prop-value-list` to reset props specific to the instance of the object and that are not needed in the package. 
+* `--only-origin-object` argument to only serialize the MPM itself.
+* `--ignore-prop-list` and passes in some properties to ignore completely on all objects in the package. 
+* `--allow-dynamic-prop-calls` and dynamic verb calls via `--allow-dynamic-verb-calls` pecifies we should allow serializing to continue when we detect dynamic prop calls
+* `--strip-trailing-comments` to strip off any commit messages that may have been added by a modified `@program` verb, common on some MOOs
+* `--dry-run` to avoid saving the package map. 
+
+The `--reset-prop-value-list` argument can only reset certain properties:
+
+| Type | Reset Value |
+| ---- | ----------- |
+| INT | 0 |
+| STR | "" |
+| LIST | {} |
+| MAP | [] |
+| BOOL | false |
+| FLOAT | 0.0 |
+| OBJ | #-1 |
+
+All other property values (such as WAIF, ANON, ERR) will throw `E_ARGS` with the value it failed to reset, and package creation will be aborted.
+
+An example of serializing the MPM Helper Verbs that a `wizard` uses to make/load/install/view packages:
+
+```
+@make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package,@manage-packages --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --target-self --strip-trailing-comments --dry-run
+```
+
+In the above example we made use of a variety of command-line options:
+* `--verb-list` to specify the ONLY verbs on the object we wanted to serialize
+* `--only-origin-object` to only serialize the `origin object ` thus MPM does not to dive into the dependency graph
+* `--ignore-all-cored-props` so we don't get cored references in our package map, that we wouldn't be using anyway
+* `--dont-serialize-cored-aliases` so we don't serialize any props on $sysobj that point to the `origin object`
+* `--dont-serialize-ancestry` so we don't package up the parents of the `origin object`
+* `--allow-dynamic-verb-calls` so that `@install-package` (which can dynamically call a verb on the installed package when install completes) doesn't raise an error when MPM detects the dynamic verb call
+* `--ignore-all-non-cored-props` so that we don't serialize any of the props on #22664 (good thing too, since `player` bits typically have a lot of props
+* `--target-self` to make this package install on the `player` who runs `@install-package`
+* `--strip-trailing-comments` to strip off any commit messages that may have been added by a modified `@program` verb, common on some MOOs
+* `--dry-run` so we can test out packaging without saving the package to `.created_packages`.
+
+** Example: Serializing Some Updated String Utils Verbs **
+
+Let's say you have some great $string_utils verbs that you want to make a package of and make available. Here is an example of how you might do that:
+
+```
+@make-package $string_utils --verb-list=names_of_indented,name_of_single --ignore-all-non-cored-props --ignore-all-cored-props --dry-run --dont-serialize-ancestry
+```
+
+In the above example we made use of a variety of command-line options:
+* `--verb-list` to define the verbs we want included
+* `--ignore-all-non-cored-props` and `--ignore-all-cored-props` because our new verbs don't rely on any properties so we don't need to serialize any
+* `--dont-serialize-ancestry` since we only care about the verbs on $string_utils and we are sure they don't rely on any verbs on the parents
+* `--dry-run` to generate and display the package without saving ti
+
+### Package Object Hierarchy
+
+Different MOOs have different object heirarchies. When a hierarchy is different on the MOO installing the package than it was on the MOO where the package was created, the `wizard` installing the package will be prompted to `rewire` the ancestry, where possible.
+
+//TODO OUTLINE AN EXAMPLE HIERARCHY AND WHAT MIGHT HAPPEN HERE
+
+The `--dont-serialize-ancestry` option is very valuable when you really don't care about the object heierarchy. For example, if you are packaging up an object and its dependencies and you know that nothing in the ancestors matters to your packaged code, using this option will allow for a faster and less interactive installation due to fewer objects needing to be rewired on insetallation. 
+
+### Package Meta Data
+
+There are a number of meta data fields associated with your package. These fields are serialized with your package, and also make up the package header information that can be made available in a package_list inside a package repository. The meta data is mainly collected by prompting the user during the package creation process, but some is autogenrated as well. The meta data saved for a package is outlined below:
+
+| Name| Description | Required |
+| ------------- | ------------- | ------------- | 
+| Package Name | Name of your package, this should NOT include a version number | yes |
+| Package Id | The id of your package. This will carry over each time you create a new version of the package | yes |
+| Package Version | A float. Like 1.0 or 1.1, the version of your package | yes |
+| Package Hash | An md5 hash of your package map, auto generated when you create a package | yes |
+| Package Description | The description of your package. This is shown when browsing a package repository and when viewing/installing a package | yes |
+| Package Created At | An autogenerated timestamp of when the package was created | yes |
+| Package Created By | The name and number of the programmer who created the package | yes |
+| Package URL | The url where the package can be found online. | no |
+| Package Changelog | Holds the most recent updates to the package, for when you are updating an existing package | no |
+| Package Post Install Note | A note shown to the user when the package is finished installing. Good for any additional setup options, or pointing to help files | no |
+| Package Options | The options that the package was created using. | no |
+| Package Post Install Verb | (DEPRECATED, included in package options now) A verb that gets run when the package finishes installing | no |
+| Package Target Self | (DEPRECATED, included in package options now) Notifies the package manager that the target of this package is the `wizard` installing the package | no |
+| MPM Version | The version of MPM that was used to create the package | yes |
+
+### Self Targeted Packages
+
+It is possible to create packages targeted at the `wizard` installing the package via MPM. This is a great way to package up cool verbs that you use and think others will find useful, such as a version of `@verbs` or `@parents` that displays information in a well formatted way.
+
+Care should be taken when creating self targeted packages. You need to make sure you aren't packaging up an entire `player` bit. Use the command line arugments to filter out or ignore properties and cored references that your package doesn't need to include and that might interfere with or alter the `wizard` installing the package.
+
+### Testing a Created Package
+
+It's important that you test your newly created package on a dev server before making it available to the public. It would be preferable to test the package with a stock [ToastCore](https://github.com/lisdude/toastcore) database. This will ensure it works as expected without any potential hidden dependencies that cause it to function properly on your MOO, that were some how not serialized as part of the package.
+
+## Managing Packages
+
+The `@manage-packages` wizard verb will drop you into a menu where you can manage your installed and created packages.
+
+```
+Manage Packages
+
+1. Installed Packages
+2. Created Packages
+3. Exit
+[Type a number for your selection or `@abort' to abort the command.]
+```
+
+**Managing Installed Packages**
+
+Choosing the `Installed Packages` menu item by selection `1`, will display a list of objects you have installed packages on (or that have been created as the `origin object` of a package.
+
+```
+1: #20
+2: #56
+3: #26942
+4: #88222
+[Type a number for your selection or `@abort' to abort the command.]
+```
+
+Selecting an object by entering the corresponding number will display a list of the installed packages from that object.
+
+```
+#  PACKAGE NAME @ VERSION                  INSTALLED BY        INSTALLED DATE
+1: String Utils Expanded @ 1.0             #22664              Thu Jan 20 15:08:46 2022 PST
+
+[Type a number for your selection or `@abort' to abort the command.]
+```
+
+Entering the number of the package you want to examine will display the details stored about that package:
+
+```
+Name:                String Utils Expanded
+Package Version:     1.0
+Package Id:          None
+Hash:                C2F77FDA0D9D8712544E2FB1DBAA8C43
+Installed At:        Thu Jan 20 15:08:46 2022 PST
+Installed By:        #22664
+Description:         This package adds two verbs to $string_utils: names_of_indented and name_of_single which are used for pretty printing objects with indentation.
+Changelog:           None
+Post Install Note:   None
+
+(R)emove package (M)ain menu
+
+[Type a selection or `@abort' to abort the command.]
+```
+
+You can then choose to enter `R` to remove the package, or `M` to return to the main menu.
+
+> Warning: The `R` option deletes the package from your `.installed_packages`. It does NOT remove or otherwise rollback changes to your MOO made when installing the package.
+
+**Managing Creating Packages**
+
+Selecting the `Created Packages` option by entering `2` from the `@manage-packages` menu works in a similar way as Installed Packages. You are dropped into a list of objects you have created packages from. You then select the object you want to view the packages for. You are them presented with a list of packages you've created with this `origin object`.
+
+```
+#  PACKAGE NAME @ VERSION                  STATUS     CREATED BY          CREATE DATE
+1: String Utils Enhanced @ 1.0             DEPRECATED Slither (#2)        Thu Jan 20 16:58:54 2022 PST
+2: String Utils Enhanced @ 1.1             LIVE       Fengshui (#22664)   Sun Jan 23 11:24:18 2022 PST
+[Type a number for your selection or `@abort' to abort the command.]
+``
+
+You will notice this list looks similar to the `Installed Packages` list, with the exception of the STATUS column. This column shows if a package is considered `live` or `deprecated`.
+
+Packages are `live` by default. Any package marked as `live` will be included when you executed `$mpm:dump_package_headers()` to dump the headers to include in your `package_list`. See the [Making Packages Available](#making-packages-available) section for more information on the `package_list`.
+
+Packages that are `deprecated` will not be included when you `$mpm:dump_package_headers()`. It is good practice to mark packages as deprecated when you release a new version that is intended to fully replace an old version, and you no longer wish to make the older version available.
+
+> Note: It is still a good practice to leave your old packages online, as folx may wish to run an older version of your package. Marking is as deprecated will serve to not have your package repository advertise the package, which means new people will not find it.
 
 ## Making Packages Available
 The MOO Package Manager makes it easy to copy packages from one MOO to another, or to make your packages available online. There is one way to copy your package directly to another MOO and two ways of  making your package available online that will be discussed below.
