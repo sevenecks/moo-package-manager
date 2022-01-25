@@ -1,6 +1,7 @@
 ## [1.3.1] - 2022.01.24 9:01PM
 * Added MIT license
 * Fixed formatting in README
+* Added The Almighty Scheduler package
 
 ## [1.3.0] - 2022.01.23 2:25PM
 * Added String Utils Enhanced @ 1.1
