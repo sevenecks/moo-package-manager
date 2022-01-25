@@ -4,6 +4,7 @@
 * Added The Almighty Scheduler package
 * Added The Almighty Scheduler Wizard Verbs package
 * Updated Enhanced Coder verbs to 1.1 - added @tree
+* Fixed all packages to have a package id
 
 ## [1.3.0] - 2022.01.23 2:25PM
 * Added String Utils Enhanced @ 1.1
