@@ -1,3 +1,7 @@
+## [1.3.1] - 2022.01.24 9:01PM
+* Added MIT license
+* Fixed formatting in README
+
 ## [1.3.0] - 2022.01.23 2:25PM
 * Added String Utils Enhanced @ 1.1
 * Added Enhanced Coder Verbs @ 1.0

@@ -423,7 +423,7 @@ You can then choose to enter `R` to remove the package, or `M` to return to the 
 
 > Warning: The `R` option deletes the package from your `.installed_packages`. It does NOT remove or otherwise rollback changes to your MOO made when installing the package.
 
-**Managing Creating Packages**
+**Managing Created Packages**
 
 Selecting the `Created Packages` option by entering `2` from the `@manage-packages` menu works in a similar way as Installed Packages. You are dropped into a list of objects you have created packages from. You then select the object you want to view the packages for. You are them presented with a list of packages you've created with this `origin object`.
 
@@ -432,7 +432,7 @@ Selecting the `Created Packages` option by entering `2` from the `@manage-packag
 1: String Utils Enhanced @ 1.0             DEPRECATED Slither (#2)        Thu Jan 20 16:58:54 2022 PST
 2: String Utils Enhanced @ 1.1             LIVE       Fengshui (#22664)   Sun Jan 23 11:24:18 2022 PST
 [Type a number for your selection or `@abort' to abort the command.]
-``
+```
 
 You will notice this list looks similar to the `Installed Packages` list, with the exception of the STATUS column. This column shows if a package is considered `live` or `deprecated`.
 
