@@ -2,6 +2,7 @@
 * Added MIT license
 * Fixed formatting in README
 * Added The Almighty Scheduler package
+* Added The Almighty Scheduler Wizard Verbs package
 
 ## [1.3.0] - 2022.01.23 2:25PM
 * Added String Utils Enhanced @ 1.1
