@@ -1,6 +1,7 @@
 ## [1.4.0] - TBD
 * Fixed typo in @make-package args
 * Made $mpm:dump_package_headers do a sort on the headers first so they are alphabetical
+* Updatd @load-package to use $string_utils:left to format the # for package list
 
 ## [1.3.1] - 2022.01.24 9:01PM
 * Added MIT license
