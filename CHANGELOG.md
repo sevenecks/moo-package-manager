@@ -5,6 +5,7 @@
 * Updated dump_package_headers to dump the package_id instead of the hash
 * Updated @Load-package to show [installed] and [update available] based on status of installed packages
 * Added Handle Lagging Task System package at 1.0
+* Added Handle lagging task wizard verbs package @ 1.0
 * fixed match_cored_props_in_code so that it doesn't match a trailing comma when scanning
 * fixed @make-package argument for --reset-prop-values
 * made cored prop references actually get serialzied when referenced from another objects verbs
