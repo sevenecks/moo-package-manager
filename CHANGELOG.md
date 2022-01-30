@@ -12,6 +12,7 @@
 * made cored prop references actually get serialzied when referenced from another objects verbs, this also fixes an issue where a dependent object that defined only props would not be included in the package
 * Added suspend_if_needed to display_verb_data
 * A few other QOL/bug fixes that aren't worth noting as they don't change behavior in an incompatible way
+* updated package rewire error when fewer ancestors exist on target MOO, to be more clear
 
 ## [1.3.1] - 2022.01.24 9:01PM
 * Added MIT license
