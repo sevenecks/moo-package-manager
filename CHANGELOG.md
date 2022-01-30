@@ -1,3 +1,17 @@
+## [1.4.0] - 2022.01.30 12:34PM
+* Fixed typo in @make-package args
+* Made $mpm:dump_package_headers do a sort on the headers first so they are alphabetical
+* Updatd @load-package to use $string_utils:left to format the # for package list
+* Updated dump_package_headers to dump the package_id instead of the hash
+* Updated @Load-package to show [installed] and [update available] based on status of installed packages
+* Added Handle Lagging Task System package at 1.0
+* Added Handle lagging task wizard verbs package @ 1.0
+* fixed match_cored_props_in_code so that it doesn't match a trailing ,}" when matching
+* fixed @make-package argument for --reset-prop-values
+* made cored prop references actually get serialzied when referenced from another objects verbs, this also fixes an issue where a dependent object that defined only props would not be included in the package
+* Added suspend_if_needed to display_verb_data
+* A few other QOL/bug fixes that aren't worth noting as they don't change behavior in an incompatible way
+
 ## [1.3.1] - 2022.01.24 9:01PM
 * Added MIT license
 * Fixed formatting in README
