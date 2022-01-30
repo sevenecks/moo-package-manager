@@ -6,9 +6,9 @@
 * Updated @Load-package to show [installed] and [update available] based on status of installed packages
 * Added Handle Lagging Task System package at 1.0
 * Added Handle lagging task wizard verbs package @ 1.0
-* fixed match_cored_props_in_code so that it doesn't match a trailing comma when scanning
+* fixed match_cored_props_in_code so that it doesn't match a trailing ,}" when matching
 * fixed @make-package argument for --reset-prop-values
-* made cored prop references actually get serialzied when referenced from another objects verbs
+* made cored prop references actually get serialzied when referenced from another objects verbs, this also fixes an issue where a dependent object that defined only props would not be included in the package
 
 ## [1.3.1] - 2022.01.24 9:01PM
 * Added MIT license
