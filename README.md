@@ -1,4 +1,4 @@
-# MOO Package Manager (MPM) 1.3
+# MOO Package Manager (MPM) 1.4
 
 ## About
 The MOO Package Manager is a configurable package manager written in MOO code and designed for [ToastStunt](https://github.com/lisdude/toaststunt) (a LambdaMOO fork). It allows you to:
