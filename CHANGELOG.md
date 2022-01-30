@@ -4,6 +4,7 @@
 * Updatd @load-package to use $string_utils:left to format the # for package list
 * Updated dump_package_headers to dump the package_id instead of the hash
 * Updated @Load-package to show [installed] and [update available] based on status of installed packages
+* added lastest_package_installed to return the most recent installed version of a package based on version #
 * Added Handle Lagging Task System package at 1.0
 * Added Handle lagging task wizard verbs package @ 1.0
 * fixed match_cored_props_in_code so that it doesn't match a trailing ,}" when matching
