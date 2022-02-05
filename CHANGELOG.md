@@ -1,3 +1,25 @@
+## [1.5.0] - TBD
+* fixed comments in package_build_referenced_verbs_map 
+* added :match_with_regex verb so we can start centralizing many of the :match_whatever verbs that have basically the same code
+* removed `match_this_verbs_in_code`, added .REGEX_MATCH_THIS_VERBS prop and replaced with calls with :match_with_regex
+* removed `match_this_props_in_code`, added .REGEX_MATCH_THIS_PROP prop
+* removed `match_this_dynamic_prop_calls_in_code`, added .REGEX_MATCH_DYNAMIC_PROP_CALLS
+* removed `match_this_dynamic_verb_calls_in_code`, added .REGEX_MATCH_DYNAMIC_VERB_CALLS
+* removed `match_cored_props_in_code` and replaced with prop and call to match_with_regex
+* removed `match_cored_verbs_in_code` and replaced with prop and call to match_with_regex
+* fixed a bug in `package_build_referenced_verbs_map` where it was not using setadd properly, causing a tb
+* fixed a bug in `package_build_referenced_props_map` where it was not using setadd properly, causing a tb
+* updated :package_serialize to only show messages about all cored props/verbs/etc if lists are not empty
+* updated :package_serialize with ansi colors, and updated how some of the messages are presented
+* updated debugging info in :package_serialize to have colors, only show when present
+* added color to package_serialize_verb_data debugging on dynamic prop/verb calls
+* added command line argument --skip-generic-dependencies to allow skipping of utility packages any ToastCore/LambdaCore is going to have
+* added `generic_dependencies` prop with the basic ToastCore verbs from {"building_utils", "command_utils", "gender_utils", "list_utils", "match_utils", "object_utils", "perm_utils", "seq_utils", "set_utils", "string_utils"}
+* added `skip-generic-dependencies` command line option to readme
+* updated confirm_package_creation_options with `skip-generic-dependencies`
+* removed useless debugging from :graph_verb_exists and :graph_prop_exists that was spammy
+* added `--convert-short-cored-to-long` command line option, updated guide, added to confirm_package_creation_options
+
 ## [1.4.0] - 2022.01.30 12:34PM
 * Fixed typo in @make-package args
 * Made $mpm:dump_package_headers do a sort on the headers first so they are alphabetical

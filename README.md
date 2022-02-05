@@ -264,6 +264,8 @@ This is due to the fact that we can't smartly serialize these references without
 | --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
 | --dont-serialize-ancestry | This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing, and avoiding the need to rewire ancestors. useful if you aren't relying on ancestors verbs | no |
 | --strip-trailing-comments | Strips any trailing comments (string literals) from the end of serialized verbs | no |
+| --skip-generic-dependencies | Skips serializing known verbs on Utility Objects (think $string_utils:left or $object_utils:has_property) that are present in any ToastCore/LambdaCore db. Use with care as just because they are present doesn't mean changes may not have been made to them on source or target MOO | no |
+| --convert-short-cored-to-long | This will auto convert short cored references like $lu or $su to $list_utils and $string_utils before doing any serializing or processing on them. Use this option if you have short cored references in your code | no |
 | --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
 
 > Note: Arguments can be provided in any order, except for the object number, which must be first.
