@@ -250,11 +250,12 @@ This is due to the fact that we can't smartly serialize these references without
 | --select-verbs | enable dynamic selection of verbs on `origin object` to include via interactive prompt | no |
 | --fully-serialize-ancestry | enable full serialization of ancestors verbs (excluding objects whose parent is $nothing) | no |
 | --serialize-#1 | enable full serialization of ancestors whose parent is $nothing | no |
-| --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!) | no |
+| --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!). Will still serailiaze cored obj/verbs that are referenced (IE: $string_utils:nn) | no |
 | --ignore-prop-list=propname1,propname2,#20.propname,... | if no obj# is provided, ignores any prop on any object with specified propname, if obj# is provided, ignores that prop on only that obj# | no |
 | --reset-prop-value-list=obj.prop,obj.prop,... | if provided, when serializing obj.prop it will be reset to an empty/false version of whatever value it holds | no |
 | --only-origin-object | Ignore all package dependencies and only serialize the origin object + ancestry | no |
 | --ignore-all-cored-props | Ignore all cored properties, meaning the props & objects they reference will not be serialized in the package | no |
+| --ignore-all-cored-verbs | Ignore all cored verbs, meaning the verbs and objects (ie: $string_utils:nn) that are referenced in code will not be serialized in the package | no |
 | --dont-serialize-cored-aliases | If any object being serialized has cored aliases, such as $string_utils, they will not be included |
 | --ignore-all-non-cored-props | Ignores any properties defined on objects, causing them to not be serialized in the package |
 | --only-include-prop-list=obj.prop1,prop2,... | if obj# is provided, it will only include that prop on the specified obj, if no obj# provided it will include any matching prop on any obj being included in the package | no |

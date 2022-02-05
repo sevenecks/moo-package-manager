@@ -20,6 +20,8 @@
 * removed useless debugging from :graph_verb_exists and :graph_prop_exists that was spammy
 * added `--convert-short-cored-to-long` command line option, updated guide, added to confirm_package_creation_options
 * repackaged Code Scanner @ 1.2 to include needed meta info
+* added --ignore-all-cored-verbs to ignore cored verbs referenced in serailized code
+* repackaged Read Selection @ 1.2 to include meta info
 
 ## [1.4.0] - 2022.01.30 12:34PM
 * Fixed typo in @make-package args

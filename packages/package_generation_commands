@@ -24,3 +24,6 @@ Handle Lagging Task System
 
 MOO Code Scanner
 @make-package #150 --ignore-prop-list=key,aliases,description,object_size --only-origin-object --allow-dynamic-verb-calls --allow-dynamic-prop-calls --strip-trailing-comments --dry-run
+
+Read Selection
+@make-package $command_utils --verb-list=read_selection,read_selection_with_options --strip-trailing-comments --ignore-all-cored-props --ignore-all-non-cored-props --ignore-all-cored-verbs --dry-run
