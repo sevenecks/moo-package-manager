@@ -25,6 +25,7 @@
 * updated `handle_post_install` to optionally copy over .registered_repositories if they differ from what is present in the newly installed $mpm
 * added Undeprecate package option to `$mpm:manage_packages` and updated README
 * added dump package headers option to @manage-packages
+* updated @manage-packages -> installed packages/created packages to show name & number
 
 ## [1.4.0] - 2022.01.30 12:34PM
 * Fixed typo in @make-package args

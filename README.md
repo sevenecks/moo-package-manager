@@ -388,10 +388,10 @@ Manage Packages
 Choosing the `Installed Packages` menu item by selection `1`, will display a list of objects you have installed packages on (or that have been created as the `origin object` of a package.
 
 ```
-1: #20
-2: #56
-3: #26942
-4: #88222
+1: string utilities (#20)
+2: command utilities (#56)
+3: Diff Utils (#26942)
+4: Map Utilities (#88222)
 [Type a number for your selection or `@abort' to abort the command.]
 ```
 
