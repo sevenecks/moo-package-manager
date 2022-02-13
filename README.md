@@ -250,11 +250,12 @@ This is due to the fact that we can't smartly serialize these references without
 | --select-verbs | enable dynamic selection of verbs on `origin object` to include via interactive prompt | no |
 | --fully-serialize-ancestry | enable full serialization of ancestors verbs (excluding objects whose parent is $nothing) | no |
 | --serialize-#1 | enable full serialization of ancestors whose parent is $nothing | no |
-| --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!) | no |
+| --verb-list=verbname1,verbname2,... | only serialize `origin object` verbs in this comma seperated list (no space after the `,`!). Will still serailiaze cored obj/verbs that are referenced (IE: $string_utils:nn) | no |
 | --ignore-prop-list=propname1,propname2,#20.propname,... | if no obj# is provided, ignores any prop on any object with specified propname, if obj# is provided, ignores that prop on only that obj# | no |
 | --reset-prop-value-list=obj.prop,obj.prop,... | if provided, when serializing obj.prop it will be reset to an empty/false version of whatever value it holds | no |
 | --only-origin-object | Ignore all package dependencies and only serialize the origin object + ancestry | no |
 | --ignore-all-cored-props | Ignore all cored properties, meaning the props & objects they reference will not be serialized in the package | no |
+| --ignore-all-cored-verbs | Ignore all cored verbs, meaning the verbs and objects (ie: $string_utils:nn) that are referenced in code will not be serialized in the package | no |
 | --dont-serialize-cored-aliases | If any object being serialized has cored aliases, such as $string_utils, they will not be included |
 | --ignore-all-non-cored-props | Ignores any properties defined on objects, causing them to not be serialized in the package |
 | --only-include-prop-list=obj.prop1,prop2,... | if obj# is provided, it will only include that prop on the specified obj, if no obj# provided it will include any matching prop on any obj being included in the package | no |
@@ -264,6 +265,8 @@ This is due to the fact that we can't smartly serialize these references without
 | --allow-dynamic-prop-calls | this will prevent package creation from aborting when a dynamic prop call is detected. use with care. | no |
 | --dont-serialize-ancestry | This will prevent ancestors from being serialized, essentially setting the parent of all serialized objects to $nothing, and avoiding the need to rewire ancestors. useful if you aren't relying on ancestors verbs | no |
 | --strip-trailing-comments | Strips any trailing comments (string literals) from the end of serialized verbs | no |
+| --skip-generic-dependencies | Skips serializing known verbs on Utility Objects (think $string_utils:left or $object_utils:has_property) that are present in any ToastCore/LambdaCore db. Use with care as just because they are present doesn't mean changes may not have been made to them on source or target MOO | no |
+| --convert-short-cored-to-long | This will auto convert short cored references like $lu or $su to $list_utils and $string_utils before doing any serializing or processing on them. Use this option if you have short cored references in your code | no |
 | --dry-run | generates the package but does not save it, instead offers to display the generated package map | no |
 
 > Note: Arguments can be provided in any order, except for the object number, which must be first.
@@ -272,7 +275,7 @@ Below is an example of using --reset-prop-value-list to `@make-package` a new ve
 
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --dry-run
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --ignore-all-cored-props --dry-run
 ```
 
 * `--reset-prop-value-list` to reset props specific to the instance of the object and that are not needed in the package. 
@@ -385,10 +388,10 @@ Manage Packages
 Choosing the `Installed Packages` menu item by selection `1`, will display a list of objects you have installed packages on (or that have been created as the `origin object` of a package.
 
 ```
-1: #20
-2: #56
-3: #26942
-4: #88222
+1: string utilities (#20)
+2: command utilities (#56)
+3: Diff Utils (#26942)
+4: Map Utilities (#88222)
 [Type a number for your selection or `@abort' to abort the command.]
 ```
 
@@ -438,7 +441,7 @@ You will notice this list looks similar to the `Installed Packages` list, with t
 
 Packages are `live` by default. Any package marked as `live` will be included when you executed `$mpm:dump_package_headers()` to dump the headers to include in your `package_list`. See the [Making Packages Available](#making-packages-available) section for more information on the `package_list`.
 
-Packages that are `deprecated` will not be included when you `$mpm:dump_package_headers()`. It is good practice to mark packages as deprecated when you release a new version that is intended to fully replace an old version, and you no longer wish to make the older version available.
+Packages that are `deprecated` will not be included when you `$mpm:dump_package_headers()`. It is good practice to mark packages as deprecated when you release a new version that is intended to fully replace an old version, and you no longer wish to make the older version available. Deprecated packages can be undeprecated in the same way they are deprecated.
 
 > Note: It is still a good practice to leave your old packages online, as folx may wish to run an older version of your package. Marking is as deprecated will serve to not have your package repository advertise the package, which means new people will not find it.
 

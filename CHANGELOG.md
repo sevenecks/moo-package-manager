@@ -1,3 +1,43 @@
+## [1.5.0] - TBD
+* fixed comments in package_build_referenced_verbs_map 
+* added :match_with_regex verb so we can start centralizing many of the :match_whatever verbs that have basically the same code
+* removed `match_this_verbs_in_code`, added .REGEX_MATCH_THIS_VERBS prop and replaced with calls with :match_with_regex
+* removed `match_this_props_in_code`, added .REGEX_MATCH_THIS_PROP prop
+* removed `match_this_dynamic_prop_calls_in_code`, added .REGEX_MATCH_DYNAMIC_PROP_CALLS
+* removed `match_this_dynamic_verb_calls_in_code`, added .REGEX_MATCH_DYNAMIC_VERB_CALLS
+* removed `match_cored_props_in_code` and replaced with prop and call to match_with_regex
+* removed `match_cored_verbs_in_code` and replaced with prop and call to match_with_regex
+* fixed a bug in `package_build_referenced_verbs_map` where it was not using setadd properly, causing a tb
+* fixed a bug in `package_build_referenced_props_map` where it was not using setadd properly, causing a tb
+* updated :package_serialize to only show messages about all cored props/verbs/etc if lists are not empty
+* updated :package_serialize with ansi colors, and updated how some of the messages are presented
+* updated debugging info in :package_serialize to have colors, only show when present
+* added color to package_serialize_verb_data debugging on dynamic prop/verb calls
+* added command line argument --skip-generic-dependencies to allow skipping of utility packages any ToastCore/LambdaCore is going to have
+* added `generic_dependencies` prop with the basic ToastCore verbs from {"building_utils", "command_utils", "gender_utils", "list_utils", "match_utils", "object_utils", "perm_utils", "seq_utils", "set_utils", "string_utils"}
+* added `skip-generic-dependencies` command line option to readme
+* updated confirm_package_creation_options with `skip-generic-dependencies`
+* removed useless debugging from :graph_verb_exists and :graph_prop_exists that was spammy
+* added `--convert-short-cored-to-long` command line option, updated guide, added to confirm_package_creation_options
+* repackaged Code Scanner @ 1.2 to include needed meta info
+* added --ignore-all-cored-verbs to ignore cored verbs referenced in serailized code
+* repackaged Read Selection @ 1.2 to include meta info
+* updated `handle_post_install` to optionally copy over .registered_repositories if they differ from what is present in the newly installed $mpm
+* added Undeprecate package option to `$mpm:manage_packages` and updated README
+* added dump package headers option to @manage-packages
+* updated @manage-packages -> installed packages/created packages to show name & number
+* added INTERNAL.md and TODO.md files
+* updated comments in :package_build_this_verbs_list
+* added $mpm:package_build_unincluded_referenced_this_verbs to detect verbs we aren't including but might want to
+* added warning when serializing a package and an object references a 'this' verb which is defined on the object but not included in the package
+* fixed a bug where $mpm:package_build_this_verbs_list would return multiples of the same verb name, fixed with setadd()
+* Updated package_generation_commands with updates @make-package for $mpm
+* added MOO Package Manager 1.5 package
+* fixed bug in :handle_post_install which was referencing $mpm:version instead of this:version resulting in always seeing the older version
+* removed and readded all $mpm verbs to put them in a more intuitive order
+* added MOO Package Manager Wizard Verbs 1.5 package
+* updated readme with updates @make-package for MPM
+
 ## [1.4.0] - 2022.01.30 12:34PM
 * Fixed typo in @make-package args
 * Made $mpm:dump_package_headers do a sort on the headers first so they are alphabetical
@@ -13,6 +53,8 @@
 * Added suspend_if_needed to display_verb_data
 * A few other QOL/bug fixes that aren't worth noting as they don't change behavior in an incompatible way
 * updated package rewire error when fewer ancestors exist on target MOO, to be more clear
+* removed TODO comments from many verbs and moved to TODO.md
+* fixed comment in build_ancestry_object_map
 
 ## [1.3.1] - 2022.01.24 9:01PM
 * Added MIT license
