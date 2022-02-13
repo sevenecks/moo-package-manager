@@ -53,6 +53,8 @@
 * Added suspend_if_needed to display_verb_data
 * A few other QOL/bug fixes that aren't worth noting as they don't change behavior in an incompatible way
 * updated package rewire error when fewer ancestors exist on target MOO, to be more clear
+* removed TODO comments from many verbs and moved to TODO.md
+* fixed comment in build_ancestry_object_map
 
 ## [1.3.1] - 2022.01.24 9:01PM
 * Added MIT license

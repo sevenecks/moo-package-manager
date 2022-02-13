@@ -41,3 +41,16 @@ load a package for processing;
 
 - we need to deal with verbs with multiple names
 - consider adding a commandline argument to ignore this verbs that are referenced but not included to avoid the warning when they aren't included in the package
+
+## $mpm:package_update_object
+
+- should we offer to update the name and aliases?
+
+## $mpm:package_install
+
+- deal with names being different on the parentage, even when we provide an appropriate parent;
+- create ability to rollback changes using log;
+- reset log each time, or keep some kind of versioning using a map;
+- make ancestor rewiring happen before verbs / props are added to parent object;
+- handle ancestor mappings when we select to update the object in place;
+
