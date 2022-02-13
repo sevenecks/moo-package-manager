@@ -1,5 +1,5 @@
 MPM
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --dry-run
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --ignore-all-cored-props --dry-run
 
 MPM Wizard Verbs
 @make-package #22664 --verb-list=@make-package,@view-package,@install-package,@load-package,@manage-packages --only-origin-object --ignore-all-cored-props --dont-serialize-cored-aliases --dont-serialize-ancestry --allow-dynamic-verb-calls --ignore-all-non-cored-props --target-self --strip-trailing-comments --dry-run

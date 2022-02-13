@@ -26,6 +26,13 @@
 * added Undeprecate package option to `$mpm:manage_packages` and updated README
 * added dump package headers option to @manage-packages
 * updated @manage-packages -> installed packages/created packages to show name & number
+* added INTERNAL.md and TODO.md files
+* updated comments in :package_build_this_verbs_list
+* added $mpm:package_build_unincluded_referenced_this_verbs to detect verbs we aren't including but might want to
+* added warning when serializing a package and an object references a 'this' verb which is defined on the object but not included in the package
+* fixed a bug where $mpm:package_build_this_verbs_list would return multiples of the same verb name, fixed with setadd()
+* Updated package_generation_commands with updates @make-package for $mpm
+* added MOO Package Manager 1.5 package
 
 ## [1.4.0] - 2022.01.30 12:34PM
 * Fixed typo in @make-package args
