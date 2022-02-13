@@ -37,6 +37,7 @@
 * removed and readded all $mpm verbs to put them in a more intuitive order
 * added MOO Package Manager Wizard Verbs 1.5 package
 * updated readme with updates @make-package for MPM
+* release of v1.5
 
 ## [1.4.0] - 2022.01.30 12:34PM
 * Fixed typo in @make-package args
