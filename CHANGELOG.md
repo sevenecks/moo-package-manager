@@ -1,4 +1,4 @@
-## [1.5.0] - TBD
+## [1.5.0] - 2022.02.13 11:03AM
 * fixed comments in package_build_referenced_verbs_map 
 * added :match_with_regex verb so we can start centralizing many of the :match_whatever verbs that have basically the same code
 * removed `match_this_verbs_in_code`, added .REGEX_MATCH_THIS_VERBS prop and replaced with calls with :match_with_regex
