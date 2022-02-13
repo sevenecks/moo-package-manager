@@ -379,7 +379,8 @@ Manage Packages
 
 1. Installed Packages
 2. Created Packages
-3. Exit
+3. Dump Package Headers
+4. Exit
 [Type a number for your selection or `@abort' to abort the command.]
 ```
 
@@ -439,9 +440,9 @@ Selecting the `Created Packages` option by entering `2` from the `@manage-packag
 
 You will notice this list looks similar to the `Installed Packages` list, with the exception of the STATUS column. This column shows if a package is considered `live` or `deprecated`.
 
-Packages are `live` by default. Any package marked as `live` will be included when you executed `$mpm:dump_package_headers()` to dump the headers to include in your `package_list`. See the [Making Packages Available](#making-packages-available) section for more information on the `package_list`.
+Packages are `live` by default. Any package marked as `live` will be included when you dump package headers for your `package_list`. See the [Making Packages Available](#making-packages-available) section for more information on the `package_list`.
 
-Packages that are `deprecated` will not be included when you `$mpm:dump_package_headers()`. It is good practice to mark packages as deprecated when you release a new version that is intended to fully replace an old version, and you no longer wish to make the older version available. Deprecated packages can be undeprecated in the same way they are deprecated.
+Packages that are `deprecated` will not be included when you dump package headers. It is good practice to mark packages as deprecated when you release a new version that is intended to fully replace an old version, and you no longer wish to make the older version available. Deprecated packages can be undeprecated in the same way they are deprecated.
 
 > Note: It is still a good practice to leave your old packages online, as folx may wish to run an older version of your package. Marking is as deprecated will serve to not have your package repository advertise the package, which means new people will not find it.
 
@@ -484,7 +485,7 @@ Alternatively, you can make a package repository. A package repository contains 
 
 `package headers` are generated from the package meta data stored in your instance of the `$mpm`. When you create a package, the `$mpm.created_packages` map is updated with the newly created package. This stores every package you have created, including the multiple different versions of a package you may have created (for instance if you are updating your packages as you fix bugs or add functionality).
 
-To generate package headers for your `package_list` you can simply execute:
+To generate package headers for your `package_list` you can `@manage-packages` and choose 'Dump Package Headers' or execute:
 
 ```
 ;$mpm:dump_package_headers()
