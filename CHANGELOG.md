@@ -33,6 +33,10 @@
 * fixed a bug where $mpm:package_build_this_verbs_list would return multiples of the same verb name, fixed with setadd()
 * Updated package_generation_commands with updates @make-package for $mpm
 * added MOO Package Manager 1.5 package
+* fixed bug in :handle_post_install which was referencing $mpm:version instead of this:version resulting in always seeing the older version
+* removed and readded all $mpm verbs to put them in a more intuitive order
+* added MOO Package Manager Wizard Verbs 1.5 package
+* updated readme with updates @make-package for MPM
 
 ## [1.4.0] - 2022.01.30 12:34PM
 * Fixed typo in @make-package args

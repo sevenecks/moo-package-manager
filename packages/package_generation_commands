@@ -14,7 +14,7 @@ Enhanced Coder Wizard Verbs
 Enhanced Coder @make-package #2 --allow-dynamic-prop-calls --dont-serialize-ancestry --dont-serialize-cored-aliases --ignore-all-cored-props --ignore-all-non-cored-props --only-origin-object --target-self --verb-list=@parents,tell_contents,@verbs,@kids,@props,@cored,@where,@tree,do_tree --strip-trailing-comments --dry-run
 
 Diff Utils
-Diff Utils: @make-package $diff_utils --strip-trailing-comments --only-include-prop-list=#141.default_hash_algo,#141.simple_ansi,#141.help_msg --dry-run
+@make-package $diff_utils --strip-trailing-comments --only-include-prop-list=#141.default_hash_algo,#141.simple_ansi,#141.help_msg --dry-run
 
 Handle Lagging Task Wizard Verbs
 @make-package #22664 --strip-trailing-comments --ignore-all-non-cored-props --ignore-all-cored-props --verb-list=@lagging --only-origin-object --dont-serialize-ancestry --target-self --dry-run

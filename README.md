@@ -275,7 +275,7 @@ Below is an example of using --reset-prop-value-list to `@make-package` a new ve
 
 
 ```
-@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --dry-run
+@make-package $mpm --reset-prop-value-list=#24836.log,#24836.created_packages,#24836.installed_packages,#24836.loaded_package,#24836.last_created_package_map,#24836.last_created_package_encoded --only-origin-object --ignore-prop-list=object_size,last_location,realname,weight,movement_queue,debug,type_history,create_data,instance_id,create_date --allow-dynamic-prop-calls --allow-dynamic-verb-calls --strip-trailing-comments --post-install-verb=handle_post_install --ignore-all-cored-props --dry-run
 ```
 
 * `--reset-prop-value-list` to reset props specific to the instance of the object and that are not needed in the package. 
